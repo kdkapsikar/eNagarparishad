@@ -359,7 +359,7 @@ const S = {
   'bot.openLabel': ["मदतनीसांशी बोला", "Talk to Madatnees"],
   'bot.teaserTitle': ["राम राम मंडळी! 🙏", "Ram Ram! 🙏"],
   'bot.teaser': ["मी मदतनीस. काही मदत हवी का? इथं दाबा.", "I'm Madatnees. Need any help? Tap here."],
-  'bot.placeholderMenu': ["इथं लिहा, नाहीतर माइकचे चिन्ह (🎤) दाबून बोला...", "Type here, or press the mic symbol (🎤) and speak..."],
+  'bot.placeholderMenu': ["इथं लिहा...", "Type here..."],
   'bot.voicePick': ["आवाज:", "Voice:"],
   'bot.voiceSample': ["राम राम! मी मदतनीस. हा आवाज चालेल का?", "Ram Ram! I am Madatnees. Does this voice sound right?"],
   // ---- staff: dashboard

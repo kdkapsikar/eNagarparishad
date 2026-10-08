@@ -77,14 +77,11 @@ export default function Mascot({ pose = 'rest', listening = false, size, classNa
         </g>
         {/* hands - drawn after the head so a raised hand is in front of the शेमला */}
         <g className="bhau-arm arm-wave">
-          <path d="M60 63 C68 61 73 54 74 46" fill="none" stroke={INK} strokeWidth="6.4" strokeLinecap="round" />
-          <path d="M60 63 C68 61 73 54 74 46" fill="none" stroke={KURTA} strokeWidth="4" strokeLinecap="round" />
-          <circle cx="74.5" cy="42" r="4.3" fill={SKIN} stroke={INK} strokeWidth="1.2" />
+          <Arm shoulder={[60, 64]} elbow={[70, 58]} wrist={[73.5, 45]} tilt={14} forearmClass="bhau-forearm" />
         </g>
         <g className="bhau-arm arm-hold">
-          <path d="M61 63 C67 52 70 30 70 9" fill="none" stroke={INK} strokeWidth="6.4" strokeLinecap="round" />
-          <path d="M61 63 C67 52 70 30 70 9" fill="none" stroke={KURTA} strokeWidth="4" strokeLinecap="round" />
-          <circle cx="70" cy="5.5" r="4" fill={SKIN} stroke={INK} strokeWidth="1.2" />
+          {/* the flat palm sits under the chat panel, holding it up */}
+          <Arm shoulder={[60, 64]} elbow={[71, 54]} wrist={[71, 17]} />
         </g>
         <g className="bhau-arm arm-namaste">
           <path d="M22 66 C27 71 31 72.5 35.5 71" fill="none" stroke={INK} strokeWidth="6.4" strokeLinecap="round" />
@@ -97,5 +94,53 @@ export default function Mascot({ pose = 'rest', listening = false, size, classNa
 
       </g>
     </svg>
+  );
+}
+
+/**
+ * A working man's arm: kurta sleeve rolled up to the elbow, bare forearm, a red दोरा (sacred thread) at the
+ * wrist and an open palm with fingers. Points are in the 80x80 viewBox; the palm points the way the forearm
+ * does, turned a further `tilt` degrees.
+ */
+function Arm({ shoulder, elbow, wrist, tilt = 0, forearmClass }) {
+  const [sx, sy] = shoulder;
+  const [ex, ey] = elbow;
+  const [wx, wy] = wrist;
+  const angle = (Math.atan2(wx - ex, ey - wy) * 180) / Math.PI + tilt;
+  const forearm = `M${ex} ${ey} Q${(ex + wx) / 2 + 2.2} ${(ey + wy) / 2} ${wx} ${wy}`;
+  return (
+    <>
+      <g className={forearmClass}>
+        {/* a slight outward curve, so it reads as an arm and not a stick */}
+        <path d={forearm} fill="none" stroke={INK} strokeWidth="7" strokeLinecap="round" />
+        <path d={forearm} fill="none" stroke={SKIN} strokeWidth="4.8" strokeLinecap="round" />
+        <g transform={`translate(${wx} ${wy}) rotate(${angle}) scale(1.18)`}>
+          <Palm />
+        </g>
+      </g>
+      <line x1={sx} y1={sy} x2={ex} y2={ey} stroke={INK} strokeWidth="8.4" strokeLinecap="round" />
+      <line x1={sx} y1={sy} x2={ex} y2={ey} stroke={KURTA} strokeWidth="6.2" strokeLinecap="round" />
+      {/* the rolled-up cuff */}
+      <ellipse cx={ex} cy={ey} rx="4.1" ry="2.8" transform={`rotate(${(Math.atan2(ey - sy, ex - sx) * 180) / Math.PI + 90} ${ex} ${ey})`} fill={KURTA} stroke={INK} strokeWidth="1.1" />
+    </>
+  );
+}
+
+/** Open palm, fingers up, wrist at (0, 0). */
+function Palm() {
+  const finger = (x, top, w = 1.75) => <rect x={x} y={top} width={w} height={-top - 5} rx="0.88" fill={SKIN} stroke={INK} strokeWidth="0.8" />;
+  return (
+    <>
+      {finger(-3.7, -11.2)}
+      {finger(-1.75, -12.2)}
+      {finger(0.2, -11.7)}
+      {finger(2.1, -10.2, 1.6)}
+      <ellipse cx="-4.4" cy="-4.6" rx="1.2" ry="2.7" transform="rotate(-32 -4.4 -4.6)" fill={SKIN} stroke={INK} strokeWidth="0.8" />
+      <path d="M-3.9 -7 C-4.1 -2 -2.5 0.2 0 0.2 C2.5 0.2 4 -2 3.8 -7 Z" fill={SKIN} stroke={INK} strokeWidth="0.9" strokeLinejoin="round" />
+      <path d="M-2.4 -4.4 C-1 -3.6 1 -3.6 2.2 -4.6" fill="none" stroke={SKIN_DARK} strokeWidth="0.6" strokeLinecap="round" />
+      {/* दोरा */}
+      <rect x="-3.3" y="-0.4" width="6.6" height="1.5" rx="0.6" fill="#d6281f" stroke={INK} strokeWidth="0.5" />
+      <circle cx="0" cy="0.35" r="0.55" fill="#f5c518" />
+    </>
   );
 }
