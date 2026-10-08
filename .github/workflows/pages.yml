@@ -1,0 +1,70 @@
+name: Deploy web app to GitHub Pages
+
+# Publishes the React app only. The API + database must be hosted elsewhere (see README, "Deploying").
+# One-time setup: repo Settings -> Pages -> Source: "GitHub Actions", and
+# Settings -> Secrets and variables -> Actions -> Variables -> add API_URL (your deployed API's URL).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'client/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    # A push before API_URL is configured is skipped quietly; a manual run without it fails with instructions.
+    if: ${{ github.event_name == 'workflow_dispatch' || vars.API_URL != '' }}
+    runs-on: ubuntu-latest
+    env:
+      VITE_API_URL: ${{ vars.API_URL }}
+      VITE_BASE: /${{ github.event.repository.name }}/
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Require API_URL
+        run: |
+          if [ -z "$VITE_API_URL" ]; then
+            echo "::error::Repository variable API_URL is not set. Add it under Settings > Secrets and variables > Actions > Variables (e.g. https://e-nagarparishad-api.onrender.com)."
+            exit 1
+          fi
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npm run build -w client
+
+      # GitHub Pages serves 404.html for unknown paths; making it a copy of index.html lets deep links
+      # such as /e-nagarparishad/schemes/3 load the React app, which then routes client-side.
+      - name: SPA fallback for deep links
+        run: cp client/dist/index.html client/dist/404.html
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: client/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,11 @@
+{
+  "name": "e-नगरपरिषद",
+  "short_name": "e-नगरपरिषद",
+  "lang": "mr",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "background_color": "#fff7ed",
+  "theme_color": "#9a3412",
+  "icons": [{ "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml" }]
+}

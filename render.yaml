@@ -1,0 +1,32 @@
+# Render Blueprint for the API. New > Blueprint > pick this repo, then fill in the secrets below.
+# (Free plan: the service sleeps after ~15 min idle; the first request after a pause takes ~30-60 s.
+#  Daily birthday wishes are still prepared - on the first dashboard / messages load of the day.)
+services:
+  - type: web
+    name: e-nagarparishad-api
+    runtime: node
+    plan: free
+    region: singapore
+    buildCommand: npm ci
+    startCommand: npm run migrate && npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: production
+      - key: TRUST_PROXY
+        value: "1"
+      - key: TZ_NAME
+        value: Asia/Kolkata
+      - key: MESSAGE_CHANNEL
+        value: manual
+      # Neon (or any Postgres) *direct* connection string, ending in ?sslmode=require
+      - key: DATABASE_URL
+        sync: false
+      # 64 hex chars; encrypts PAN numbers. Keep a copy somewhere safe - it cannot be recovered.
+      - key: DATA_ENCRYPTION_KEY
+        sync: false
+      # Your GitHub Pages origin, no path and no trailing slash: https://kdkapsikar.github.io
+      - key: CORS_ORIGINS
+        sync: false

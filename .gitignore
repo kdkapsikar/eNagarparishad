@@ -1,0 +1,13 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+coverage/
+.claude/
+server/uploads/
+# Scans of the paper forms carry personal photos and phone numbers - kept locally, not in git.
+# Their fields are documented in docs/FORMS.md.
+docs/sample-forms/
