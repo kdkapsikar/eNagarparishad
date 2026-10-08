@@ -11,7 +11,9 @@ export const openMadatnees = (intent) => window.dispatchEvent(new CustomEvent('m
 
 /**
  * मदतनीस floating at the bottom-right of the public pages. A "राम राम!" bubble calls people over;
- * tapping him opens the chat, which he then carries on his head with both hands, like a basket. Not shown on staff pages or on
+ * tapping him opens the chat, which then sits on a bamboo pole he holds up with both hands
+ * (the pole's top is 5.6 of 80 from the top of his box - POLE_TOP in Mascot.jsx; the window's bottom edge
+ * sits 0.91 up, just behind the pole, so it reads as resting on it). Not shown on staff pages or on
  * /register (that page has the chat inline).
  */
 export default function BotWidget() {
@@ -69,7 +71,7 @@ export default function BotWidget() {
         <div
           role="dialog"
           aria-label={t('bot.name')}
-          className={`fixed bottom-[calc(var(--bhau)*0.86+16px)] left-3 right-3 z-40 h-[min(620px,calc(100dvh-var(--bhau)-40px))] overflow-hidden rounded-2xl border border-orange-200 bg-white shadow-2xl [--bhau:clamp(84px,9vw,112px)] sm:left-auto sm:right-5 sm:w-[400px] ${open ? 'bot-pop' : 'hidden'}`}
+          className={`fixed bottom-[calc(var(--bhau)*0.91+16px)] left-3 right-3 z-40 h-[min(620px,calc(100dvh-var(--bhau)-40px))] overflow-hidden rounded-t-2xl rounded-b-md border border-orange-200 bg-white shadow-2xl [--bhau:clamp(84px,9vw,112px)] sm:left-auto sm:right-5 sm:w-[400px] ${open ? 'bot-pop' : 'hidden'}`}
         >
           <ChatBot mode="public" fill command={command} onClose={() => setOpen(false)} />
         </div>

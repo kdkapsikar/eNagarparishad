@@ -67,6 +67,8 @@
 .bhau-wave .bhau-forearm { transform-box: view-box; transform-origin: 70px 58px; animation: bhau-wave 0.9s ease-in-out infinite; }
 .bhau-hold .arm-hold { opacity: 1; }
 .bhau-sweat { opacity: 0; }
+/* the pole presses his तुरा down to the side */
+.bhau-hold .bhau-tura { animation: none; transform: rotate(62deg); }
 .bhau-hold .bhau-sweat { animation: bhau-sweat 2.4s ease-in infinite; transform-box: fill-box; transform-origin: center; }
 .bhau-hold .bhau-cheek { transform-box: fill-box; transform-origin: center; transform: scale(1.5); opacity: 0.45; }
 .bhau-hold .bhau-body, .bhau-hold .bhau-shadow { animation: none; }

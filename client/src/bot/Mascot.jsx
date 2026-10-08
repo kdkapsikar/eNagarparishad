@@ -4,8 +4,8 @@ import { onSpeakingChange } from './speech.js';
 // मदतनीस - the bot's face: a village elder in a saffron फेटा (with its शेमला tail and तुरा), गंध on
 // the forehead, a proper handlebar मिशी, white kurta and an उपरणं over the shoulder.
 //
-// pose:  'rest' | 'wave' (calling you over) | 'namaste' (greeting) | 'hold' (carrying the chat panel on
-//        his head with both hands, like a basket - with a comic sweat drop)
+// pose:  'rest' | 'wave' (calling you over) | 'namaste' (greeting) | 'hold' (both fists gripping a bamboo
+//        pole over his head, the chat window resting on it - with a comic sweat drop)
 // While the voice is speaking his mouth moves; `listening` turns his head to listen.
 // All motion is CSS (see .bhau-* in index.css) and stops under prefers-reduced-motion.
 
@@ -83,9 +83,7 @@ export default function Mascot({ pose = 'rest', listening = false, size, classNa
           <Arm shoulder={[60, 64]} elbow={[70, 58]} wrist={[73.5, 45]} tilt={14} forearmClass="bhau-forearm" />
         </g>
         <g className="bhau-arm arm-hold">
-          {/* both hands up, elbows out - carrying the chat panel like a टोपली on his head */}
-          <Arm shoulder={[20, 64]} elbow={[5, 37]} wrist={[14.5, 14.5]} tilt={62} />
-          <Arm shoulder={[60, 64]} elbow={[75, 37]} wrist={[65.5, 14.5]} tilt={-62} />
+          <HoldingPole />
         </g>
         <g className="bhau-arm arm-namaste">
           <path d="M22 66 C27 71 31 72.5 35.5 71" fill="none" stroke={INK} strokeWidth="6.4" strokeLinecap="round" />
@@ -146,6 +144,54 @@ function Palm() {
       {/* दोरा */}
       <rect x="-3.3" y="-0.4" width="6.6" height="1.5" rx="0.6" fill="#d6281f" stroke={INK} strokeWidth="0.5" />
       <circle cx="0" cy="0.35" r="0.55" fill="#f5c518" />
+    </>
+  );
+}
+
+// Where the pole sits; BotWidget places the chat window just above it (POLE_TOP in the 80x80 viewBox).
+const POLE_Y = 8;
+export const POLE_TOP = POLE_Y - 2.4;
+
+/**
+ * Both arms raised, fists gripping a bamboo pole (with its joints) above the फेटा. The pole reaches past
+ * his shoulders (the SVG overflows) so the chat window above it looks carried.
+ */
+function HoldingPole() {
+  const arm = (shoulder, elbow, wrist) => (
+    <>
+      <line x1={elbow[0]} y1={elbow[1]} x2={wrist[0]} y2={wrist[1]} stroke={INK} strokeWidth="7" strokeLinecap="round" />
+      <line x1={elbow[0]} y1={elbow[1]} x2={wrist[0]} y2={wrist[1]} stroke={SKIN} strokeWidth="4.8" strokeLinecap="round" />
+      <line x1={shoulder[0]} y1={shoulder[1]} x2={elbow[0]} y2={elbow[1]} stroke={INK} strokeWidth="9.4" strokeLinecap="round" />
+      <line x1={shoulder[0]} y1={shoulder[1]} x2={elbow[0]} y2={elbow[1]} stroke={KURTA} strokeWidth="7.2" strokeLinecap="round" />
+      <ellipse cx={elbow[0]} cy={elbow[1]} rx="4.1" ry="2.8" transform={`rotate(${(Math.atan2(elbow[1] - shoulder[1], elbow[0] - shoulder[0]) * 180) / Math.PI + 90} ${elbow[0]} ${elbow[1]})`} fill={KURTA} stroke={INK} strokeWidth="1.1" />
+      {/* दोरा */}
+      <rect x={wrist[0] - 3} y={wrist[1] - 1} width="6" height="1.6" rx="0.6" fill="#d6281f" stroke={INK} strokeWidth="0.5" />
+    </>
+  );
+  // A fist around the pole: knuckles on top, fingers wrapped in front, thumb over them.
+  const fist = (x, thumbSide) => (
+    <g transform={`translate(${x} ${POLE_Y})`}>
+      <rect x="-4.3" y="-4.4" width="8.6" height="8.4" rx="3" fill={SKIN} stroke={INK} strokeWidth="1" />
+      <path d="M-4.2 -0.9 H4.2" stroke={INK} strokeWidth="0.7" />
+      <path d="M-1.45 -0.9 V3.6 M1.45 -0.9 V3.6" stroke={SKIN_DARK} strokeWidth="0.7" strokeLinecap="round" />
+      <ellipse cx={thumbSide * 2.2} cy="-1.8" rx="2.6" ry="1.35" fill={SKIN} stroke={INK} strokeWidth="0.8" />
+    </g>
+  );
+  const BAMBOO = '#c9a253';
+  const BAMBOO_DARK = '#8a6a2a';
+  return (
+    <>
+      {arm([20, 64], [6, 41], [16, 12])}
+      {arm([60, 64], [74, 41], [64, 12])}
+      {/* the bamboo pole: it reaches well to his right (the left of the screen) so it supports the chat
+          window across most of a phone's width; on wide screens the window covers the rest */}
+      <rect x="-160" y={POLE_Y - 2.4} width="248" height="4.8" rx="2.4" fill={BAMBOO} stroke={INK} strokeWidth="1.1" />
+      <path d={`M-158 ${POLE_Y - 0.9} H86`} stroke="#e6c987" strokeWidth="0.9" strokeLinecap="round" />
+      {[-140, -95, -50, -12, 30, 50, 76].map((x) => (
+        <path key={x} d={`M${x} ${POLE_Y - 2.4} V${POLE_Y + 2.4}`} stroke={BAMBOO_DARK} strokeWidth="1.1" />
+      ))}
+      {fist(16, 1)}
+      {fist(64, -1)}
     </>
   );
 }
