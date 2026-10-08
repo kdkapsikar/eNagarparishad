@@ -28,6 +28,20 @@ export const voiceLanguage = () => (voice ? voice.lang.slice(0, 2).toLowerCase()
 // Emoji and symbols are read out literally ("folded hands"), so they are dropped from what is spoken.
 const speakable = (text) => text.replace(/[\p{Extended_Pictographic}\u{FE0F}\u{200D}]/gu, '').replace(/[*_#]/g, '').trim();
 
+// Whether the bot is talking right now - the mascot moves its mouth while it is.
+const speakingListeners = new Set();
+let speaking = false;
+let current = null;
+function setSpeaking(value) {
+  if (speaking === value) return;
+  speaking = value;
+  speakingListeners.forEach((fn) => fn(value));
+}
+export function onSpeakingChange(fn) {
+  speakingListeners.add(fn);
+  return () => speakingListeners.delete(fn);
+}
+
 export function speak(text, { lang = 'mr' } = {}) {
   if (!synth || !text) return;
   synth.cancel();
@@ -39,10 +53,19 @@ export function speak(text, { lang = 'mr' } = {}) {
     u.lang = lang === 'en' ? 'en-IN' : 'mr-IN';
   }
   u.rate = 0.92; // a little slower: clearer for older listeners
+  // A cancelled utterance also fires end/error, possibly after its replacement started - so only the
+  // latest utterance may clear the flag.
+  current = u;
+  u.onstart = () => setSpeaking(true);
+  u.onend = () => current === u && setSpeaking(false);
+  u.onerror = () => current === u && setSpeaking(false);
   synth.speak(u);
 }
 
-export const stopSpeaking = () => synth?.cancel();
+export function stopSpeaking() {
+  synth?.cancel();
+  setSpeaking(false);
+}
 
 /**
  * Start listening. onInterim(text) gets live partial text; resolves with the final transcript

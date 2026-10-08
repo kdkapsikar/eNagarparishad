@@ -75,3 +75,43 @@ export function parseDate(input) {
   }
   return null;
 }
+
+/**
+ * What a resident typed or said at the main menu: 'register' | 'notices' | 'schemes' | 'certificate' |
+ * 'contact' | 'greet' | null. Village speech mixes Marathi, Hindi and English ("लाईट कधी येणार?").
+ */
+export function detectIntent(input) {
+  const s = clean(input);
+  if (!s) return null;
+  const has = (...words) => words.some((w) => s.includes(w));
+  if (has('दाखला', 'दाखले', 'प्रमाणपत्र', 'सर्टिफिकेट', 'certificate', 'जन्म', 'मृत्यू')) return 'certificate';
+  if (has('लाईट', 'लाइट', 'वीज', 'बिजली', 'पाणी', 'पानी', 'नळ', 'light', 'power', 'water', 'electric')) return 'notices';
+  if (has('योजना', 'स्कीम', 'scheme', 'yojana', 'अनुदान', 'घरकुल', 'पेन्शन')) return 'schemes';
+  if (has('नोंद', 'register', 'सर्वे', 'survey', 'कुटुंब', 'family')) return 'register';
+  if (has('संपर्क', 'फोन', 'पत्ता', 'कार्यालय', 'ऑफिस', 'contact', 'phone', 'office', 'address')) return 'contact';
+  if (has('नमस्कार', 'राम राम', 'नमस्ते', 'हॅलो', 'hello', 'hi', 'जय')) return 'greet';
+  return null;
+}
+
+// Words that say nothing about *which* scheme ("योजना" alone would match every scheme).
+const SCHEME_STOPWORDS = new Set(['योजना', 'योजनेची', 'योजनेचा', 'योजनेबद्दल', 'योजनांची', 'काही', 'आहे', 'आहेत', 'का', 'साठी', 'माहिती',
+  'हवी', 'हवा', 'सांगा', 'मला', 'आम्हाला', 'कोणती', 'scheme', 'schemes', 'yojana', 'for', 'any', 'about', 'is', 'there']);
+
+/**
+ * Schemes matching the words of a query (title, category, summary). Marathi adds endings to words
+ * ("शेतीसाठी", "महिलांसाठी"), so a query word also matches when it starts with a word of the scheme.
+ */
+export function searchSchemes(query, schemes) {
+  const words = clean(query).split(' ').filter((w) => w.length > 1 && !SCHEME_STOPWORDS.has(w));
+  if (!words.length) return [];
+  return schemes
+    .map((s) => {
+      const hay = clean(`${s.title} ${s.category} ${s.summary}`);
+      const hayWords = hay.split(' ').filter((h) => h.length >= 3);
+      const hits = words.filter((w) => hay.includes(w) || hayWords.some((h) => w.startsWith(h))).length;
+      return { s, score: hits + (clean(s.category) === clean(query) ? 2 : 0) };
+    })
+    .filter((x) => x.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .map((x) => x.s);
+}

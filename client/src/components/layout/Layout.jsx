@@ -1,4 +1,5 @@
 import { Outlet } from 'react-router-dom';
+import BotWidget from '../../bot/BotWidget.jsx';
 import { useT } from '../../i18n/LanguageContext.jsx';
 import Footer from './Footer.jsx';
 import Header from './Header.jsx';
@@ -15,6 +16,7 @@ export default function Layout() {
         <Outlet />
       </main>
       <Footer />
+      <BotWidget />
     </div>
   );
 }

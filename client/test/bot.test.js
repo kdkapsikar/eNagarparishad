@@ -103,3 +103,27 @@ test('every string has Marathi and English with the same placeholders', () => {
     assert.equal(holes(value[0]), holes(value[1]), key);
   }
 });
+
+describe('assistant menu', async () => {
+  const { detectIntent, searchSchemes } = await import('../src/bot/parse.js');
+  test('understands everyday requests', () => {
+    assert.equal(detectIntent('लाईट कधी येणार?'), 'notices');
+    assert.equal(detectIntent('नळाला पाणी नाही'), 'notices');
+    assert.equal(detectIntent('शेतीसाठी काही योजना आहे का?'), 'schemes');
+    assert.equal(detectIntent('मुलाचा जन्म दाखला हवा'), 'certificate');
+    assert.equal(detectIntent('कार्यालयाचा फोन नंबर'), 'contact');
+    assert.equal(detectIntent('राम राम'), 'greet');
+    assert.equal(detectIntent('कुटुंबाची नोंदणी करायची आहे'), 'register');
+    assert.equal(detectIntent('क्रिकेट'), null);
+  });
+
+  test('scheme search copes with Marathi word endings and ignores filler words', () => {
+    const schemes = [
+      { title: 'पीएम किसान', category: 'शेती', summary: 'शेतकरी कुटुंबांना मदत' },
+      { title: 'लाडकी बहीण योजना', category: 'महिला', summary: 'महिलांना मासिक मदत' },
+    ];
+    assert.deepEqual(searchSchemes('शेतीसाठी काही योजना आहे का?', schemes).map((s) => s.category), ['शेती']);
+    assert.deepEqual(searchSchemes('महिलांसाठी', schemes).map((s) => s.category), ['महिला']);
+    assert.deepEqual(searchSchemes('योजना', schemes), []);
+  });
+});

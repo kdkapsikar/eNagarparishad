@@ -50,29 +50,45 @@ Open <http://localhost:5174>. Demo logins (development only - the seed refuses t
 `npm test` runs the API integration tests (against `TEST_DATABASE_URL`, which it **truncates**) and the bot
 conversation tests.
 
-## The voice bot (सेवा सहाय्यक)
+## सेवा भाऊ - the voice assistant
 
-`/register` (residents) and **Staff → बॉटद्वारे माहिती** (volunteers) open the same chat:
+A friendly village elder - saffron फेटा with its शेमला, गंध on the forehead, a proper मिशी, white kurta and
+उपरणं - floats at the bottom-right of every public page. He greets people with a "राम राम मंडळी!" bubble
+and a wave, does नमस्कार while waiting, holds the chat panel up when it is open, and **moves his mouth while
+the voice is speaking**. He talks in everyday rural Marathi ("घरातले कर्ते कोण?", "शेतीवाडी आहे का?",
+"लय भारी!"). He is drawn as an inline SVG and animated with CSS ([client/src/bot/Mascot.jsx](client/src/bot/Mascot.jsx)),
+so there are no images to load and motion stops for people who turn on "reduce motion".
 
-- Asks the paper-form questions one at a time in Marathi, starting with **consent**. Follow-ups only appear
-  when they apply (farm details only if the family has a farm, PAN / voter ID only for adults, gender is
-  inferred from "पत्नी", "मुलगा"...). The head of the family is member 1, so their name is asked once.
-- **Voice out:** every question is read aloud (🔊 toggle, 🔈 replay per message) with the phone's
-  Marathi text-to-speech voice, falling back to a Hindi voice (which reads Devanagari) with a hint to
-  install Marathi in *Settings → Google Text-to-speech*.
-- **Voice in:** 🎤 uses the browser's speech recognition in `mr-IN`. Yes/no and choice answers are sent as
-  soon as they are recognised ("ती माझी बायको आहे" → पत्नी); free text is placed in the box so the person can
-  check it first. Spoken digits ("नऊ आठ सात..."), Marathi numerals and dates such as "१५ जून १९७५" are
-  understood.
-- Quick-reply buttons for every choice, **Skip** on optional questions, **Back**, and a **summary** with
-  "correct something" before saving. An unfinished conversation survives a reload (kept on the device).
-- Residents' entries arrive as **unverified**; staff check them (Dashboard → तपासा) before they get notices.
-- Volunteers without network: the family is saved on the phone and sent with the **Sync** button later.
+What he can do from his menu (tap a chip, type, or say it - "लाईट कधी येणार?", "शेतीसाठी काही योजना आहे का?"):
 
-Both voice features use the browser's built-in Web Speech API - free, no server. Speech recognition works
-in Chrome / Edge (Android and desktop); in Firefox and on many iPhones it is unavailable and the mic button
-is hidden - tapping and typing always work. Recognition audio is processed by the browser vendor's speech
-service. Engine: [client/src/bot/](client/src/bot/).
+| Menu | In the chat |
+| --- | --- |
+| 📝 कुटुंब नोंदणी | The full family registration (below) |
+| 💡 लाईट-पाणी सूचना | Reads out the latest power / water notices, with a link to all of them |
+| 🏛️ सरकारी योजना | Searches schemes by what you say (copes with Marathi endings: "शेतीसाठी" → शेती), or by category / "new" |
+| 📜 जन्म-मृत्यू दाखला | Link to apply, or asks the request number and mobile and tells you the status |
+| 📞 कार्यालयाचा संपर्क | Office address and a tap-to-call link |
+
+Registration asks the paper-form questions one at a time, starting with **consent**. Follow-ups only
+appear when they apply (farm details only if the family has a farm, PAN / voter ID only for adults, gender
+is inferred from "पत्नी", "मुलगा"...). It shows a typing indicator and short acknowledgements ("बरं.",
+"हो, लिहून घेतलं."), offers **Skip** and **Back**, and ends with a summary you can correct before saving.
+An unfinished registration survives a reload (kept on the device).
+
+- **Voice out:** each turn is read aloud (🔊 toggle, 🔈 replay) with the phone's Marathi text-to-speech
+  voice, falling back to a Hindi voice with a hint to install Marathi in *Settings → Google Text-to-speech*.
+- **Voice in:** 🎤 uses the browser's speech recognition in `mr-IN`. Menu requests, yes/no and choices are
+  acted on at once ("ती माझी बायको आहे" → पत्नी); names and addresses are put in the box so the person can
+  check them first. Spoken digits ("नऊ आठ सात..."), Marathi numerals and dates such as "१५ जून १९७५" work.
+- `/register` opens straight into registration (a link to share on WhatsApp); the home page button opens
+  the floating सेवा भाऊ into registration. Residents' entries arrive **unverified** for staff to check.
+- **Staff → बॉटद्वारे माहिती** is the same bot for volunteers, without the menu. Without network the family
+  is saved on the phone and sent later with **Sync**.
+
+Voice uses the browser's built-in Web Speech API - free, no server. Speech recognition works in Chrome /
+Edge (Android and desktop); in Firefox and on many iPhones the mic button is hidden and tapping / typing
+still work. Recognition audio is processed by the browser vendor's speech service.
+Code: [client/src/bot/](client/src/bot/).
 
 ## Uploading offline data
 

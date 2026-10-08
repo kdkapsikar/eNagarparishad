@@ -7,7 +7,7 @@ export default function SelfRegister() {
     <div className="space-y-3">
       <h1 className="page-title">{t('register.title')}</h1>
       <p className="text-sm text-stone-600">{t('register.intro')}</p>
-      <ChatBot mode="public" />
+      <ChatBot mode="public" start="register" />
     </div>
   );
 }

@@ -51,3 +51,46 @@
     @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
   }
 }
+
+/* ---- सेवा भाऊ, the bot mascot (bot/Mascot.jsx) ---------------------------------------------- */
+.bhau { display: block; overflow: visible; }
+.bhau-body { animation: bhau-bob 3.6s ease-in-out infinite; }
+.bhau-shadow { animation: bhau-shadow 3.6s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+.bhau-eyes { animation: bhau-blink 4.8s ease infinite; transform-box: fill-box; transform-origin: center; }
+.bhau-tura { animation: bhau-sway 2.8s ease-in-out infinite; transform-box: fill-box; transform-origin: 30% 100%; }
+.bhau-tail { animation: bhau-sway 3.6s ease-in-out infinite; transform-box: fill-box; transform-origin: 20% 0%; }
+.bhau-mustache { animation: bhau-twitch 7s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+.bhau-head { transform-box: fill-box; transform-origin: 50% 90%; transition: transform 0.3s; }
+.bhau-arm { opacity: 0; transition: opacity 0.25s; }
+.bhau-wave .arm-wave { opacity: 1; transform-box: fill-box; transform-origin: 0% 100%; animation: bhau-wave 0.8s ease-in-out infinite; }
+.bhau-hold .arm-hold { opacity: 1; }
+.bhau-hold .bhau-body, .bhau-hold .bhau-shadow { animation: none; }
+.bhau-namaste .arm-namaste { opacity: 1; }
+.bhau-namaste .bhau-head { animation: bhau-nod 1.6s ease-in-out infinite; }
+.bhau-talking .bhau-mouth { animation: bhau-talk 0.26s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: center; }
+.bhau-talking .bhau-mustache { animation: bhau-mustache-talk 0.26s ease-in-out infinite alternate; }
+.bhau-listening .bhau-head { transform: rotate(-7deg); }
+
+@keyframes bhau-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2.5px); } }
+@keyframes bhau-shadow { 0%, 100% { transform: scaleX(1); } 50% { transform: scaleX(0.88); } }
+@keyframes bhau-blink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(0.1); } }
+@keyframes bhau-sway { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(5deg); } }
+@keyframes bhau-twitch { 0%, 88%, 100% { transform: none; } 91% { transform: translateY(-0.8px) scaleX(1.06); } 94% { transform: none; } 97% { transform: translateY(-0.8px) scaleX(1.06); } }
+@keyframes bhau-wave { 0%, 100% { transform: rotate(-10deg); } 50% { transform: rotate(24deg); } }
+@keyframes bhau-nod { 0%, 100% { transform: rotate(0); } 30% { transform: rotate(4deg) translateY(1px); } 60% { transform: rotate(0); } }
+@keyframes bhau-talk { from { transform: scaleY(0.8); } to { transform: scaleY(2.6); } }
+@keyframes bhau-mustache-talk { from { transform: translateY(0); } to { transform: translateY(-0.7px); } }
+
+/* chat bits */
+@keyframes bot-pop { from { opacity: 0; transform: translateY(8px) scale(0.98); } to { opacity: 1; transform: none; } }
+.bot-pop { animation: bot-pop 0.22s ease-out both; }
+.bot-typing span { display: inline-block; width: 6px; height: 6px; border-radius: 9999px; background: #a8a29e; animation: bot-dot 1s ease-in-out infinite; }
+.bot-typing span:nth-child(2) { animation-delay: 0.15s; }
+.bot-typing span:nth-child(3) { animation-delay: 0.3s; }
+@keyframes bot-dot { 0%, 80%, 100% { opacity: 0.3; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-3px); } }
+/* a faint rangoli-like dotted ground behind the conversation */
+.bot-ground { background-color: #fffbf5; background-image: radial-gradient(#f5dcc0 1px, transparent 1.2px); background-size: 18px 18px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .bhau *, .bot-pop, .bot-typing span { animation: none !important; }
+}
