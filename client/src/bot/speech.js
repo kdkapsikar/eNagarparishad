@@ -11,22 +11,53 @@ const Recognition = typeof window !== 'undefined' ? window.SpeechRecognition || 
 export const canSpeak = Boolean(synth);
 export const canListen = Boolean(Recognition);
 
+// The mascot is a man, so the voice should be too. Browsers do not say which voices are male, so known
+// voice names decide; when only a female voice exists, its pitch is lowered (see voicePitch) and the person
+// can pick another voice in the chat (voice chooser). Names come from Windows/Edge (Microsoft Manohar,
+// Madhur, Hemant...), macOS (Rishi, Lekha) and Android, which sometimes adds "male" / "female" to the name.
+const MALE_NAMES = /\b(manohar|madhur|hemant|prabhat|ravi|rishi|aarav|kunal)\b|(^|[^e])male/i;
+const FEMALE_NAMES = /\b(aarohi|swara|kalpana|lekha|heera|neerja|veena|ananya|aditi|sangeeta)\b|female/i;
+const VOICE_KEY = 'enp_bot_voice_name';
+
+const langOf = (v) => v.lang?.toLowerCase().replace('_', '-') ?? '';
+const isMale = (v) => MALE_NAMES.test(v.name) && !FEMALE_NAMES.test(v.name);
+
+/** Voices that can read Marathi text: Marathi ones first, then Hindi (also Devanagari); men first within each. */
+export function availableVoices() {
+  const voices = synth?.getVoices() ?? [];
+  const rank = (v) => (langOf(v).startsWith('mr') ? 0 : 2) + (isMale(v) ? 0 : 1);
+  return voices.filter((v) => /^(mr|hi)/.test(langOf(v))).sort((a, b) => rank(a) - rank(b));
+}
+
 let voice = null;
 function pickVoice() {
-  const voices = synth?.getVoices() ?? [];
-  const by = (prefix) => voices.find((v) => v.lang?.toLowerCase().replace('_', '-').startsWith(prefix));
-  voice = by('mr-in') ?? by('mr') ?? by('hi-in') ?? by('hi') ?? null;
+  let saved = null;
+  try { saved = localStorage.getItem(VOICE_KEY); } catch { /* ignore */ }
+  const list = availableVoices();
+  voice = list.find((v) => v.name === saved) ?? list[0] ?? null;
 }
 if (synth) {
   pickVoice();
   synth.addEventListener?.('voiceschanged', pickVoice);
 }
 
+export const currentVoiceName = () => voice?.name ?? null;
+
+/** Use a voice the person picked in the chat, and remember it on this device. */
+export function chooseVoice(name) {
+  try { localStorage.setItem(VOICE_KEY, name); } catch { /* ignore */ }
+  pickVoice();
+}
+
+// A known male voice speaks at its natural pitch; any other voice is lowered towards a man's.
+const voicePitch = () => (voice && isMale(voice) ? 1 : 0.7);
+
 /** 'mr' when a Marathi voice is installed, 'hi' for the Hindi fallback, null for none. */
-export const voiceLanguage = () => (voice ? voice.lang.slice(0, 2).toLowerCase() : null);
+export const voiceLanguage = () => (voice ? langOf(voice).slice(0, 2) : null);
 
 // Emoji and symbols are read out literally ("folded hands"), so they are dropped from what is spoken.
-const speakable = (text) => text.replace(/[\p{Extended_Pictographic}\u{FE0F}\u{200D}]/gu, '').replace(/[*_#]/g, '').trim();
+// "माइकचे चिन्ह (🎤) दाबून" is then read without the leftover empty brackets.
+const speakable = (text) => text.replace(/[\p{Extended_Pictographic}\u{FE0F}\u{200D}]/gu, '').replace(/\(\s*\)/g, '').replace(/[*_#]/g, '').replace(/ {2,}/g, ' ').trim();
 
 // Whether the bot is talking right now - the mascot moves its mouth while it is.
 const speakingListeners = new Set();
@@ -53,6 +84,7 @@ export function speak(text, { lang = 'mr' } = {}) {
     u.lang = lang === 'en' ? 'en-IN' : 'mr-IN';
   }
   u.rate = 0.92; // a little slower: clearer for older listeners
+  u.pitch = lang === 'mr' ? voicePitch() : 0.75;
   // A cancelled utterance also fires end/error, possibly after its replacement started - so only the
   // latest utterance may clear the flag.
   current = u;

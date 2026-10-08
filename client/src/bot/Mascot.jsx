@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { onSpeakingChange } from './speech.js';
 
-// सेवा भाऊ - the bot's face: a village elder in a saffron फेटा (with its शेमला tail and तुरा), गंध on
+// मदतनीस - the bot's face: a village elder in a saffron फेटा (with its शेमला tail and तुरा), गंध on
 // the forehead, a proper handlebar मिशी, white kurta and an उपरणं over the shoulder.
 //
 // pose:  'rest' | 'wave' (calling you over) | 'namaste' (greeting) | 'hold' (holding the chat panel up)

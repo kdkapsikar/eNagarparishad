@@ -50,7 +50,7 @@ Open <http://localhost:5174>. Demo logins (development only - the seed refuses t
 `npm test` runs the API integration tests (against `TEST_DATABASE_URL`, which it **truncates**) and the bot
 conversation tests.
 
-## सेवा भाऊ - the voice assistant
+## मदतनीस (Madatnees) - the voice assistant
 
 A friendly village elder - saffron फेटा with its शेमला, गंध on the forehead, a proper मिशी, white kurta and
 उपरणं - floats at the bottom-right of every public page. He greets people with a "राम राम मंडळी!" bubble
@@ -75,13 +75,18 @@ is inferred from "पत्नी", "मुलगा"...). It shows a typing ind
 "हो, लिहून घेतलं."), offers **Skip** and **Back**, and ends with a summary you can correct before saving.
 An unfinished registration survives a reload (kept on the device).
 
-- **Voice out:** each turn is read aloud (🔊 toggle, 🔈 replay) with the phone's Marathi text-to-speech
-  voice, falling back to a Hindi voice with a hint to install Marathi in *Settings → Google Text-to-speech*.
+- **Voice out:** each turn is read aloud (🔊 toggle, 🔈 replay) in a **male voice**, to match the character.
+  Browsers do not label voices by gender, so known male voices are preferred by name - Marathi first
+  (e.g. *Microsoft Manohar* on Windows/Edge), then Hindi (*Madhur*, *Hemant*), which also reads
+  Devanagari. If the phone only has a female voice, its pitch is lowered. When a phone has several Marathi
+  or Hindi voices, a **आवाज** chooser appears in the chat; it plays a sample and remembers the choice.
+  A guaranteed natural male Marathi voice on every phone needs a cloud voice (e.g. Azure
+  `mr-IN-ManoharNeural` or Google Cloud `mr-IN` male voices) behind an API endpoint - a paid add-on.
 - **Voice in:** 🎤 uses the browser's speech recognition in `mr-IN`. Menu requests, yes/no and choices are
   acted on at once ("ती माझी बायको आहे" → पत्नी); names and addresses are put in the box so the person can
   check them first. Spoken digits ("नऊ आठ सात..."), Marathi numerals and dates such as "१५ जून १९७५" work.
 - `/register` opens straight into registration (a link to share on WhatsApp); the home page button opens
-  the floating सेवा भाऊ into registration. Residents' entries arrive **unverified** for staff to check.
+  the floating मदतनीस into registration. Residents' entries arrive **unverified** for staff to check.
 - **Staff → बॉटद्वारे माहिती** is the same bot for volunteers, without the menu. Without network the family
   is saved on the phone and sent later with **Sync**.
 

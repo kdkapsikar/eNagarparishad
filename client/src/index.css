@@ -52,7 +52,7 @@
   }
 }
 
-/* ---- सेवा भाऊ, the bot mascot (bot/Mascot.jsx) ---------------------------------------------- */
+/* ---- मदतनीस, the bot mascot (bot/Mascot.jsx) ---------------------------------------------- */
 .bhau { display: block; overflow: visible; }
 .bhau-body { animation: bhau-bob 3.6s ease-in-out infinite; }
 .bhau-shadow { animation: bhau-shadow 3.6s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }

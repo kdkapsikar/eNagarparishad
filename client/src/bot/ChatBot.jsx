@@ -12,7 +12,9 @@ import {
   STEPS, applyAnswer, emptyData, inputType, isActive, isOptional, nextPosition, positionForField,
   questionText, quickReplies, skipAnswer, toPayload,
 } from './script.js';
-import { canListen, canSpeak, listen, speak, stopSpeaking, voiceLanguage } from './speech.js';
+import {
+  availableVoices, canListen, canSpeak, chooseVoice, currentVoiceName, listen, speak, stopSpeaking, voiceLanguage,
+} from './speech.js';
 import { EditPicker, Summary } from './SurveySummary.jsx';
 
 const DRAFT_KEY = (mode) => `enp_bot_draft_${mode}`;
@@ -49,7 +51,7 @@ const MENU = [
 const NOTICE_ICON = { electricity: '⚡', water: '💧', general: '📢' };
 
 /**
- * सेवा भाऊ - the ward's assistant, in Marathi with voice.
+ * मदतनीस - the ward's assistant, in Marathi with voice.
  *
  * mode="public": a resident's helper. Starts at a menu (register the family, power / water notices,
  *   schemes, certificate status, office contact); `start="register"` jumps straight into registration.
@@ -79,6 +81,8 @@ export default function ChatBot({ mode = 'public', start = mode === 'staff' ? 'r
   const [resumable, setResumable] = useState(() => loadDraft(mode));
   const [schemes, setSchemes] = useState(null);
   const [trackId, setTrackId] = useState('');
+  const [voices, setVoices] = useState(availableVoices);
+  const [voiceName, setVoiceName] = useState(currentVoiceName);
   const scrollRef = useRef(null);
   const inputRef = useRef(null);
   const queue = useRef(Promise.resolve());
@@ -145,6 +149,20 @@ export default function ChatBot({ mode = 'public', start = mode === 'staff' ? 'r
   }, [data, pos, history, mode, phase]);
 
   useEffect(() => () => stopSpeaking(), []);
+
+  // Voices load late on some phones.
+  useEffect(() => {
+    if (!canSpeak) return undefined;
+    const update = () => { setVoices(availableVoices()); setVoiceName(currentVoiceName()); };
+    window.speechSynthesis.addEventListener?.('voiceschanged', update);
+    return () => window.speechSynthesis.removeEventListener?.('voiceschanged', update);
+  }, []);
+
+  const pickVoice = (name) => {
+    chooseVoice(name);
+    setVoiceName(currentVoiceName());
+    speak(t('bot.voiceSample'), { lang });
+  };
 
   // ---- menu flows ------------------------------------------------------------------------------
   const backToMenu = () => {
@@ -494,6 +512,15 @@ export default function ChatBot({ mode = 'public', start = mode === 'staff' ? 'r
         )}
       </div>
       {voiceNote && <p className="bg-amber-50 px-3 py-1 text-[11px] leading-snug text-amber-900">{voiceNote}</p>}
+      {/* Several voices on this phone: let people pick the one that sounds right (a man's, for the मदतनीस). */}
+      {voiceOn && lang === 'mr' && voices.length > 1 && (
+        <label className="flex items-center gap-2 border-b border-orange-100 bg-orange-50/60 px-3 py-1 text-xs text-stone-600">
+          🎙️ {t('bot.voicePick')}
+          <select value={voiceName ?? ''} onChange={(e) => pickVoice(e.target.value)} className="min-w-0 flex-1 rounded border border-stone-300 bg-white px-1 py-0.5 text-xs">
+            {voices.map((v) => <option key={v.name} value={v.name}>{v.name}</option>)}
+          </select>
+        </label>
+      )}
 
       <div ref={scrollRef} className="bot-ground flex-1 space-y-2.5 overflow-y-auto overscroll-contain px-3 py-4" role="log" aria-live="polite">
         {messages.map((m) => (

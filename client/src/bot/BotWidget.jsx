@@ -4,13 +4,13 @@ import { useT } from '../i18n/LanguageContext.jsx';
 import ChatBot from './ChatBot.jsx';
 import Mascot from './Mascot.jsx';
 
-const TEASER_KEY = 'enp_bhau_teaser_closed';
+const TEASER_KEY = 'enp_madatnees_teaser_closed';
 
-/** Open the floating सेवा भाऊ from anywhere, optionally straight into a flow: openBhau('register'). */
-export const openBhau = (intent) => window.dispatchEvent(new CustomEvent('seva-bhau:open', { detail: { intent } }));
+/** Open the floating मदतनीस from anywhere, optionally straight into a flow: openMadatnees('register'). */
+export const openMadatnees = (intent) => window.dispatchEvent(new CustomEvent('madatnees:open', { detail: { intent } }));
 
 /**
- * सेवा भाऊ floating at the bottom-right of the public pages. A "राम राम!" bubble calls people over;
+ * मदतनीस floating at the bottom-right of the public pages. A "राम राम!" bubble calls people over;
  * tapping him opens the chat, which he then holds up with one hand. Not shown on staff pages or on
  * /register (that page has the chat inline).
  */
@@ -38,8 +38,8 @@ export default function BotWidget() {
       setTeaser(false);
       if (e.detail?.intent) setCommand({ intent: e.detail.intent, n: Date.now() });
     };
-    window.addEventListener('seva-bhau:open', onOpen);
-    return () => window.removeEventListener('seva-bhau:open', onOpen);
+    window.addEventListener('madatnees:open', onOpen);
+    return () => window.removeEventListener('madatnees:open', onOpen);
   }, []);
 
   if (hidden) return null;

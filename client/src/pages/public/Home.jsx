@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { api } from '../../api/client.js';
-import { openBhau } from '../../bot/BotWidget.jsx';
+import { openMadatnees } from '../../bot/BotWidget.jsx';
 import NoticeCard from '../../components/NoticeCard.jsx';
 import { useT } from '../../i18n/LanguageContext.jsx';
 import { useApi } from '../../lib/useApi.js';
@@ -23,7 +23,7 @@ export default function Home() {
       <section className="rounded-2xl bg-gradient-to-br from-brand-600 to-brand-800 px-6 py-8 text-white shadow">
         <h1 className="text-3xl font-bold">{t('home.title')}</h1>
         <p className="mt-2 max-w-2xl text-orange-50">{t('home.subtitle')}</p>
-        <button type="button" onClick={() => openBhau('register')} className="btn mt-5 bg-white text-base text-brand-700 hover:bg-orange-50">🎤 {t('home.cta')}</button>
+        <button type="button" onClick={() => openMadatnees('register')} className="btn mt-5 bg-white text-base text-brand-700 hover:bg-orange-50">🎤 {t('home.cta')}</button>
       </section>
 
       <section className="grid gap-3 sm:grid-cols-2">
