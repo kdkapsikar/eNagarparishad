@@ -34,7 +34,7 @@ function contentSecurityPolicy(apiUrl) {
 }
 
 export default defineConfig(() => ({
-  // GitHub Pages project sites live under /<repo>/. Set VITE_BASE=/e-nagarparishad/ at build time.
+  // GitHub Pages project sites live under /<repo>/. Set VITE_BASE=/eNagarparishad/ at build time.
   base: process.env.VITE_BASE || '/',
   plugins: [react(), tailwindcss(), contentSecurityPolicy(process.env.VITE_API_URL)],
   server: {

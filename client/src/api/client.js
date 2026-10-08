@@ -1,5 +1,5 @@
 import { translateServerMessage } from '../i18n/index.js';
-import { API_URL } from '../lib/config.js';
+import { API_URL, DEMO } from '../lib/config.js';
 
 const TOKEN_KEY = 'enp_token';
 
@@ -50,6 +50,15 @@ async function send(path, { method = 'GET', json, form } = {}) {
 }
 
 async function request(path, options) {
+  if (DEMO) {
+    // Loaded only in the demo build; the real build never includes the demo server.
+    const { demoRequest } = await import('./demoServer.js');
+    try {
+      return await demoRequest(path, options, tokenStore.get());
+    } catch (err) {
+      throw new ApiError(err.status ?? 500, err.message, err.fields);
+    }
+  }
   const res = await send(path, options);
   const data = res.status === 204 ? null : await res.json().catch(() => null);
   if (!res.ok) throw new ApiError(res.status, data?.error?.message ?? 'Something went wrong. Please try again.', data?.error?.fields);
@@ -58,6 +67,7 @@ async function request(path, options) {
 
 /** GET a file (Excel export / template) with the session token and hand it to the browser to save. */
 async function download(path, fallbackName) {
+  if (DEMO) throw new ApiError(400, 'Excel download needs the real server - it is not available in this demo.');
   const res = await send(path);
   if (!res.ok) {
     const data = await res.json().catch(() => null);

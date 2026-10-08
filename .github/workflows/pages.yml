@@ -1,8 +1,11 @@
 name: Deploy web app to GitHub Pages
 
 # Publishes the React app only. The API + database must be hosted elsewhere (see README, "Deploying").
-# One-time setup: repo Settings -> Pages -> Source: "GitHub Actions", and
-# Settings -> Secrets and variables -> Actions -> Variables -> add API_URL (your deployed API's URL).
+# One-time setup: repo Settings -> Pages -> Source: "GitHub Actions".
+# - Without the API_URL variable, a DEMO build is published: the app runs entirely in the visitor's browser
+#   with sample data (client/src/api/demoServer.js), so it can be tried before a server exists.
+# - Add Settings -> Secrets and variables -> Actions -> Variables -> API_URL (your deployed API's URL) and
+#   re-run this workflow to publish the real app.
 
 on:
   push:
@@ -25,21 +28,16 @@ concurrency:
 
 jobs:
   build:
-    # A push before API_URL is configured is skipped quietly; a manual run without it fails with instructions.
-    if: ${{ github.event_name == 'workflow_dispatch' || vars.API_URL != '' }}
     runs-on: ubuntu-latest
     env:
       VITE_API_URL: ${{ vars.API_URL }}
+      VITE_DEMO: ${{ vars.API_URL == '' && 'true' || 'false' }}
       VITE_BASE: /${{ github.event.repository.name }}/
     steps:
       - uses: actions/checkout@v4
 
-      - name: Require API_URL
-        run: |
-          if [ -z "$VITE_API_URL" ]; then
-            echo "::error::Repository variable API_URL is not set. Add it under Settings > Secrets and variables > Actions > Variables (e.g. https://e-nagarparishad-api.onrender.com)."
-            exit 1
-          fi
+      - name: Build mode
+        run: echo "::notice::Publishing a ${{ vars.API_URL == '' && 'DEMO build (no API_URL set)' || 'build for the API at ' }}${{ vars.API_URL }}"
 
       - uses: actions/setup-node@v4
         with:
@@ -50,7 +48,7 @@ jobs:
       - run: npm run build -w client
 
       # GitHub Pages serves 404.html for unknown paths; making it a copy of index.html lets deep links
-      # such as /e-nagarparishad/schemes/3 load the React app, which then routes client-side.
+      # such as /eNagarparishad/schemes/3 load the React app, which then routes client-side.
       - name: SPA fallback for deep links
         run: cp client/dist/index.html client/dist/404.html
 

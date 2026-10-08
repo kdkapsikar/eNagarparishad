@@ -29,7 +29,7 @@ Who uses it:
 Requires **Node 20+** and **PostgreSQL 14+**.
 
 ```bash
-git clone https://github.com/kdkapsikar/e-nagarparishad.git && cd e-nagarparishad
+git clone https://github.com/kdkapsikar/eNagarparishad.git && cd eNagarparishad
 npm install
 
 createdb enagar && createdb enagar_test        # or use any Postgres you already have
@@ -146,10 +146,27 @@ PAN is encrypted at rest (AES-256-GCM, `DATA_ENCRYPTION_KEY`) and shown masked e
 Excel export; caste/category are optional and the bot says so; residents' self-registrations stay out of
 broadcasts until checked; the scans of the paper forms are kept out of git.
 
+## Live demo (GitHub Pages)
+
+<https://kdkapsikar.github.io/eNagarparishad/> - published by [.github/workflows/pages.yml](.github/workflows/pages.yml).
+
+Until a server is set up (see the next section), GitHub Pages hosts a **demo build**: the whole app runs in
+the visitor's browser with sample families, notices and schemes ([client/src/api/demoServer.js](client/src/api/demoServer.js)).
+Data entered there stays in that browser only (a yellow banner says so, with a "reset demo" link). Excel
+upload / download need the real server and are disabled. Demo logins (also shown on the demo's login page):
+
+| Role | Username | Password |
+| --- | --- | --- |
+| Office admin | `admin` | `admin12345` |
+| Volunteer | `volunteer1` | `volunteer123` |
+
+These are demo-only. A real deployment starts with no accounts; create the first admin with
+`npm run user:create` (step 2 below), which generates a strong password.
+
 ## Deploying (GitHub Pages + Render + Neon - all free tiers)
 
 ```
-Browser ── https://kdkapsikar.github.io/e-nagarparishad/   (GitHub Pages: the React app)
+Browser ── https://kdkapsikar.github.io/eNagarparishad/   (GitHub Pages: the React app)
    └────── https://e-nagarparishad-api.onrender.com/api/... (Render: Express API)
                      └── Neon Postgres
 ```

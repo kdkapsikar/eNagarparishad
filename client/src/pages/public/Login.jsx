@@ -3,6 +3,10 @@ import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import Alert from '../../components/ui/Alert.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useT } from '../../i18n/LanguageContext.jsx';
+import { DEMO } from '../../lib/config.js';
+
+// The demo build's sample accounts (api/demoServer.js). Never shown in a real build.
+const DEMO_LOGINS = [['admin', 'admin12345', 'role.admin'], ['volunteer1', 'volunteer123', 'role.volunteer']];
 
 export default function Login() {
   const { t } = useT();
@@ -42,6 +46,19 @@ export default function Login() {
         <input id="password" type="password" className="input" autoComplete="current-password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
       </div>
       <button className="btn btn-primary w-full" disabled={busy}>{busy ? t('common.loading') : t('login.submit')}</button>
+      {DEMO && (
+        <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm">
+          <p className="mb-2 font-semibold text-amber-950">🧪 {t('demo.logins')}</p>
+          <ul className="space-y-1.5">
+            {DEMO_LOGINS.map(([username, password, role]) => (
+              <li key={username} className="flex items-center justify-between gap-2">
+                <span><b>{t(role)}</b>: <code>{username}</code> / <code>{password}</code></span>
+                <button type="button" className="btn btn-secondary px-2 py-1 text-xs" onClick={() => setForm({ username, password })}>{t('demo.use')}</button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </form>
   );
 }
