@@ -66,6 +66,9 @@
 /* the forearm swings from the elbow (70,58 in the 80x80 viewBox) - a namaskar-style wave, not a stiff arm */
 .bhau-wave .bhau-forearm { transform-box: view-box; transform-origin: 70px 58px; animation: bhau-wave 0.9s ease-in-out infinite; }
 .bhau-hold .arm-hold { opacity: 1; }
+.bhau-sweat { opacity: 0; }
+.bhau-hold .bhau-sweat { animation: bhau-sweat 2.4s ease-in infinite; transform-box: fill-box; transform-origin: center; }
+.bhau-hold .bhau-cheek { transform-box: fill-box; transform-origin: center; transform: scale(1.5); opacity: 0.45; }
 .bhau-hold .bhau-body, .bhau-hold .bhau-shadow { animation: none; }
 .bhau-namaste .arm-namaste { opacity: 1; }
 .bhau-namaste .bhau-head { animation: bhau-nod 1.6s ease-in-out infinite; }
@@ -80,6 +83,7 @@
 @keyframes bhau-twitch { 0%, 88%, 100% { transform: none; } 91% { transform: translateY(-0.8px) scaleX(1.06); } 94% { transform: none; } 97% { transform: translateY(-0.8px) scaleX(1.06); } }
 @keyframes bhau-wave { 0%, 100% { transform: rotate(-14deg); } 50% { transform: rotate(16deg); } }
 @keyframes bhau-nod { 0%, 100% { transform: rotate(0); } 30% { transform: rotate(4deg) translateY(1px); } 60% { transform: rotate(0); } }
+@keyframes bhau-sweat { 0% { opacity: 0; transform: translateY(-2px); } 15% { opacity: 1; } 75% { opacity: 1; transform: translateY(6px); } 100% { opacity: 0; transform: translateY(8px); } }
 @keyframes bhau-talk { from { transform: scaleY(0.8); } to { transform: scaleY(2.6); } }
 @keyframes bhau-mustache-talk { from { transform: translateY(0); } to { transform: translateY(-0.7px); } }
 

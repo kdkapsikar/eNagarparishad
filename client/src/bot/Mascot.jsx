@@ -4,7 +4,8 @@ import { onSpeakingChange } from './speech.js';
 // मदतनीस - the bot's face: a village elder in a saffron फेटा (with its शेमला tail and तुरा), गंध on
 // the forehead, a proper handlebar मिशी, white kurta and an उपरणं over the shoulder.
 //
-// pose:  'rest' | 'wave' (calling you over) | 'namaste' (greeting) | 'hold' (holding the chat panel up)
+// pose:  'rest' | 'wave' (calling you over) | 'namaste' (greeting) | 'hold' (carrying the chat panel on
+//        his head with both hands, like a basket - with a comic sweat drop)
 // While the voice is speaking his mouth moves; `listening` turns his head to listen.
 // All motion is CSS (see .bhau-* in index.css) and stops under prefers-reduced-motion.
 
@@ -52,6 +53,8 @@ export default function Mascot({ pose = 'rest', listening = false, size, classNa
           <path d="M31 14 C36 12 44 12 49 14" fill="none" stroke={SAFFRON_DARK} strokeWidth="1.2" />
           <path className="bhau-tura" d="M51 13 C53 5 60 2 63 6 C59 7 56.5 9 55 14 Z" fill="#ffb15c" stroke={INK} strokeWidth="1.1" />
 
+          {/* the load is heavy: a sweat drop while he holds the chat up */}
+          <path className="bhau-sweat" d="M24 30 C22.4 33 22 34.6 24 35.6 C26 34.6 25.6 33 24 30 Z" fill="#7dd3fc" stroke="#0369a1" strokeWidth="0.6" />
           {/* गंध */}
           <rect x="38.9" y="29.5" width="2.2" height="5" rx="1.1" fill="#d6281f" />
 
@@ -63,8 +66,8 @@ export default function Mascot({ pose = 'rest', listening = false, size, classNa
             <circle cx="33.3" cy="36.1" r="0.7" fill="#fff" />
             <circle cx="48.3" cy="36.1" r="0.7" fill="#fff" />
           </g>
-          <circle cx="27.5" cy="43" r="2.4" fill="#e0664b" opacity="0.28" />
-          <circle cx="52.5" cy="43" r="2.4" fill="#e0664b" opacity="0.28" />
+          <circle className="bhau-cheek" cx="27.5" cy="43" r="2.4" fill="#e0664b" opacity="0.28" />
+          <circle className="bhau-cheek" cx="52.5" cy="43" r="2.4" fill="#e0664b" opacity="0.28" />
           <path d="M40 38 C38.8 41.5 38.8 43 41 43.2" fill="none" stroke={SKIN_DARK} strokeWidth="1.3" strokeLinecap="round" />
 
           {/* तोंड (moves while speaking) under the मिशी */}
@@ -80,8 +83,9 @@ export default function Mascot({ pose = 'rest', listening = false, size, classNa
           <Arm shoulder={[60, 64]} elbow={[70, 58]} wrist={[73.5, 45]} tilt={14} forearmClass="bhau-forearm" />
         </g>
         <g className="bhau-arm arm-hold">
-          {/* the flat palm sits under the chat panel, holding it up */}
-          <Arm shoulder={[60, 64]} elbow={[71, 54]} wrist={[71, 17]} />
+          {/* both hands up, elbows out - carrying the chat panel like a टोपली on his head */}
+          <Arm shoulder={[20, 64]} elbow={[5, 37]} wrist={[14.5, 14.5]} tilt={62} />
+          <Arm shoulder={[60, 64]} elbow={[75, 37]} wrist={[65.5, 14.5]} tilt={-62} />
         </g>
         <g className="bhau-arm arm-namaste">
           <path d="M22 66 C27 71 31 72.5 35.5 71" fill="none" stroke={INK} strokeWidth="6.4" strokeLinecap="round" />
@@ -107,19 +111,20 @@ function Arm({ shoulder, elbow, wrist, tilt = 0, forearmClass }) {
   const [ex, ey] = elbow;
   const [wx, wy] = wrist;
   const angle = (Math.atan2(wx - ex, ey - wy) * 180) / Math.PI + tilt;
-  const forearm = `M${ex} ${ey} Q${(ex + wx) / 2 + 2.2} ${(ey + wy) / 2} ${wx} ${wy}`;
+  const side = ex < sx ? -1 : 1; // left arm curves and mirrors the other way
+  const forearm = `M${ex} ${ey} Q${(ex + wx) / 2 + side * 2.2} ${(ey + wy) / 2} ${wx} ${wy}`;
   return (
     <>
       <g className={forearmClass}>
         {/* a slight outward curve, so it reads as an arm and not a stick */}
         <path d={forearm} fill="none" stroke={INK} strokeWidth="7" strokeLinecap="round" />
         <path d={forearm} fill="none" stroke={SKIN} strokeWidth="4.8" strokeLinecap="round" />
-        <g transform={`translate(${wx} ${wy}) rotate(${angle}) scale(1.18)`}>
+        <g transform={`translate(${wx} ${wy}) rotate(${angle}) scale(${side * 1.18} 1.18)`}>
           <Palm />
         </g>
       </g>
-      <line x1={sx} y1={sy} x2={ex} y2={ey} stroke={INK} strokeWidth="8.4" strokeLinecap="round" />
-      <line x1={sx} y1={sy} x2={ex} y2={ey} stroke={KURTA} strokeWidth="6.2" strokeLinecap="round" />
+      <line x1={sx} y1={sy} x2={ex} y2={ey} stroke={INK} strokeWidth="9.4" strokeLinecap="round" />
+      <line x1={sx} y1={sy} x2={ex} y2={ey} stroke={KURTA} strokeWidth="7.2" strokeLinecap="round" />
       {/* the rolled-up cuff */}
       <ellipse cx={ex} cy={ey} rx="4.1" ry="2.8" transform={`rotate(${(Math.atan2(ey - sy, ex - sx) * 180) / Math.PI + 90} ${ex} ${ey})`} fill={KURTA} stroke={INK} strokeWidth="1.1" />
     </>
