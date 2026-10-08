@@ -10,7 +10,9 @@
     "migrate": "node src/db/migrate.js",
     "seed": "node scripts/seed.js",
     "user:create": "node scripts/create-user.js",
-    "test": "node --test --test-concurrency=1 test/*.test.js"
+    "test": "node --test --test-concurrency=1 test/*.test.js",
+    "bhashini:check": "node scripts/bhashini-check.js",
+    "bhashini:fake": "node scripts/fake-bhashini.js"
   },
   "engines": {
     "node": ">=20"

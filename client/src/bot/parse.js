@@ -115,3 +115,31 @@ export function searchSchemes(query, schemes) {
     .sort((a, b) => b.score - a.score)
     .map((x) => x.s);
 }
+
+/**
+ * Long text (a scheme's details) is spoken in pieces of at most `max` characters - the server takes up to
+ * 600. Pieces end at sentence ends where possible, else between words; nothing is dropped.
+ */
+export function splitForSpeech(text, max = 450) {
+  const clean = String(text ?? '').replace(/\s+/g, ' ').trim();
+  if (clean.length <= max) return clean ? [clean] : [];
+  const units = [];
+  for (const sentence of clean.split(/(?<=[.?!।])\s+/)) {
+    if (sentence.length <= max) { units.push(sentence); continue; }
+    for (const word of sentence.split(' ')) {
+      for (let i = 0; i < word.length; i += max) units.push(word.slice(i, i + max));
+    }
+  }
+  const chunks = [];
+  let cur = '';
+  for (const unit of units) {
+    if (cur && cur.length + 1 + unit.length > max) {
+      chunks.push(cur);
+      cur = unit;
+    } else {
+      cur = cur ? `${cur} ${unit}` : unit;
+    }
+  }
+  if (cur) chunks.push(cur);
+  return chunks;
+}

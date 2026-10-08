@@ -32,3 +32,11 @@ export const lookupLimiter = limiter({
   limit: 30,
   message: 'Too many lookups. Please slow down.',
 });
+
+// The assistant speaks every message, so this is generous; it only stops scripted abuse of the
+// (quota-limited) Bhashini service. Cached sentences still count but cost Bhashini nothing.
+export const speechLimiter = limiter({
+  windowMs: 60 * 1000,
+  limit: 90,
+  message: 'Too many speech requests. Please slow down.',
+});

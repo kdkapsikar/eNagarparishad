@@ -75,14 +75,12 @@ is inferred from "पत्नी", "मुलगा"...). It shows a typing ind
 "हो, लिहून घेतलं."), offers **Skip** and **Back**, and ends with a summary you can correct before saving.
 An unfinished registration survives a reload (kept on the device).
 
-- **Voice out:** each turn is read aloud (🔊 toggle, 🔈 replay) in a **male voice**, to match the character.
-  Browsers do not label voices by gender, so known male voices are preferred by name - Marathi first
-  (e.g. *Microsoft Manohar* on Windows/Edge), then Hindi (*Madhur*, *Hemant*), which also reads
-  Devanagari. If the phone only has a female voice, its pitch is lowered. When a phone has several Marathi
-  or Hindi voices, a **आवाज** chooser appears in the chat; it plays a sample and remembers the choice.
-  A guaranteed natural male Marathi voice on every phone needs a cloud voice (e.g. Azure
-  `mr-IN-ManoharNeural` or Google Cloud `mr-IN` male voices) behind an API endpoint - a paid add-on.
-- **Voice in:** 🎤 uses the browser's speech recognition in `mr-IN`. Menu requests, yes/no and choices are
+- **Voice out:** each turn is read aloud (🔊 toggle, 🔈 replay) in a **male Marathi voice**. With Bhashini
+  configured (below) the server generates it, so it is the same on every phone with nothing to install;
+  otherwise the phone's own voice is used (male voices preferred, pitch lowered when only a female voice
+  exists, plus a **आवाज** chooser).
+- **Voice in:** 🎤 records the answer and Bhashini recognises it (any phone with a microphone); without
+  Bhashini, the browser's own speech recognition in `mr-IN` is used. Menu requests, yes/no and choices are
   acted on at once ("ती माझी बायको आहे" → पत्नी); names and addresses are put in the box so the person can
   check them first. Spoken digits ("नऊ आठ सात..."), Marathi numerals and dates such as "१५ जून १९७५" work.
 - `/register` opens straight into registration (a link to share on WhatsApp); the home page button opens
@@ -90,9 +88,30 @@ An unfinished registration survives a reload (kept on the device).
 - **Staff → बॉटद्वारे माहिती** is the same bot for volunteers, without the menu. Without network the family
   is saved on the phone and sent later with **Sync**.
 
-Voice uses the browser's built-in Web Speech API - free, no server. Speech recognition works in Chrome /
-Edge (Android and desktop); in Firefox and on many iPhones the mic button is hidden and tapping / typing
-still work. Recognition audio is processed by the browser vendor's speech service.
+### Bhashini (server voice and speech recognition)
+
+[Bhashini](https://bhashini.gov.in), the Government of India's language platform, gives the assistant one
+consistent male Marathi voice and speech recognition on every phone. Once the API key is approved:
+
+1. Copy **User ID** and **API key** from *My Profile* on the Bhashini dashboard into `server/.env` (and into
+   Render's environment for production) as `BHASHINI_USER_ID` and `BHASHINI_API_KEY`.
+2. `npm run bhashini:check -w server` - speaks a test sentence and saves it, so you can listen to it.
+3. Restart the API. The web app switches to the server voice by itself (`GET /api/speech/status`).
+
+How it works ([server/src/services/speech.js](server/src/services/speech.js)): the pipeline config call
+finds the Marathi TTS / ASR services, then each sentence is synthesised once and stored in `tts_cache`, so
+the assistant's fixed lines cost one call ever and play instantly. The web app starts fetching a line while
+the typing dots show. Long text (scheme details) is spoken in sentence-sized pieces. The mic records 16 kHz
+WAV in the browser ([client/src/bot/recorder.js](client/src/bot/recorder.js)), stops after a short silence,
+and the server sends it to Bhashini; the recording is not stored. If Bhashini fails or is slow, the phone's
+own voice takes over for that line. `/api/speech/*` is rate-limited per visitor.
+
+Before the keys arrive, `npm run bhashini:fake -w server` runs a local stand-in that answers in Bhashini's
+format (a tone instead of speech) - set `BHASHINI_USER_ID=dev`, `BHASHINI_API_KEY=dev` and
+`BHASHINI_CONFIG_URL=http://localhost:3099/config` in `server/.env` to try the whole path.
+
+Without Bhashini, voice uses the browser's built-in Web Speech API: recognition works in Chrome / Edge;
+in Firefox and on many iPhones the mic button is hidden and tapping / typing still work.
 Code: [client/src/bot/](client/src/bot/).
 
 ## Uploading offline data
@@ -202,6 +221,8 @@ origin (set `NODE_ENV=production`, `DATABASE_URL`, `DATA_ENCRYPTION_KEY`; no COR
 | `CORS_ORIGINS` | – | Web-app origins allowed to call the API (GitHub Pages setup) |
 | `TZ_NAME` | `Asia/Kolkata` | Time zone for "today" and the reminder hour |
 | `REMINDER_HOUR` | 7 | Hour after which the day's wishes are prepared |
+| `BHASHINI_USER_ID` / `BHASHINI_API_KEY` | – | Bhashini credentials for the server voice and speech recognition |
+| `BHASHINI_VOICE` | `male` | Voice gender requested from Bhashini |
 | `MESSAGE_CHANNEL` | `manual` | `manual` (WhatsApp links) or `log` (print, for development) |
 | `SESSION_TTL_HOURS` | 12 | Login session length |
 | `TRUST_PROXY` | 0 | Proxy hops in front of the API (1 on Render) |
@@ -218,6 +239,8 @@ docs/    FORMS.md (paper form → fields), PRIVACY.md
 
 - The Marathi text (UI and bot questions) was written by an AI assistant - have a native speaker review
   [client/src/i18n/strings.js](client/src/i18n/strings.js) and the starter schemes before launch.
+- The Bhashini integration is tested against a stand-in that follows Bhashini's documented API; run
+  `npm run bhashini:check` once the real keys arrive.
 - Messages are sent by hand from WhatsApp (see above); automatic WhatsApp / SMS needs the approvals noted.
 - No OCR of paper-form photos yet - offline data comes in through the Excel template.
 - Certificate requests are tracked here but issued through CRS (no integration yet).

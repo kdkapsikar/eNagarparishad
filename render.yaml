@@ -27,6 +27,11 @@ services:
       # 64 hex chars; encrypts PAN numbers. Keep a copy somewhere safe - it cannot be recovered.
       - key: DATA_ENCRYPTION_KEY
         sync: false
+      # Bhashini "My Profile" values - the assistant's male Marathi voice and speech recognition (optional)
+      - key: BHASHINI_USER_ID
+        sync: false
+      - key: BHASHINI_API_KEY
+        sync: false
       # Your GitHub Pages origin, no path and no trailing slash: https://kdkapsikar.github.io
       - key: CORS_ORIGINS
         sync: false

@@ -127,3 +127,27 @@ describe('assistant menu', async () => {
     assert.deepEqual(searchSchemes('योजना', schemes), []);
   });
 });
+
+describe('splitting long text for the server voice', async () => {
+  const { splitForSpeech } = await import('../src/bot/parse.js');
+  const joined = (chunks) => chunks.join(' ');
+  test('short text stays whole', () => {
+    assert.deepEqual(splitForSpeech('लहान वाक्य.'), ['लहान वाक्य.']);
+    assert.deepEqual(splitForSpeech('  '), []);
+  });
+  test('long text breaks at sentence ends, every piece within the limit, nothing lost', () => {
+    const long = `${'पहिलं वाक्य आहे. '.repeat(40)}शेवटचं वाक्य?`;
+    const chunks = splitForSpeech(long);
+    assert.ok(chunks.length > 1 && chunks.every((c) => c.length <= 450));
+    assert.ok(chunks.every((c) => /[.?]$/.test(c)));
+    assert.equal(joined(chunks), long.replace(/\s+/g, ' ').trim());
+  });
+  test('a sentence without breaks is split between words, or cut if it has no spaces', () => {
+    const words = 'शब्द '.repeat(300).trim();
+    assert.equal(joined(splitForSpeech(words)), words);
+    const solid = 'अ'.repeat(1000);
+    const chunks = splitForSpeech(solid);
+    assert.equal(chunks.join(''), solid);
+    assert.ok(chunks.every((c) => c.length <= 450));
+  });
+});

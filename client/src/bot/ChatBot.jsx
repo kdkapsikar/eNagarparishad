@@ -13,7 +13,8 @@ import {
   questionText, quickReplies, skipAnswer, toPayload,
 } from './script.js';
 import {
-  availableVoices, canListen, canSpeak, chooseVoice, currentVoiceName, listen, speak, stopSpeaking, voiceLanguage,
+  availableVoices, canSpeak as canSpeakOnDevice, chooseVoice, currentVoiceName, listen, listenAvailable, onSpeechStatus,
+  prefetchSpeech, speak, speechStatus, stopSpeaking, voiceLanguage,
 } from './speech.js';
 import { EditPicker, Summary } from './SurveySummary.jsx';
 
@@ -73,7 +74,7 @@ export default function ChatBot({ mode = 'public', start = mode === 'staff' ? 'r
   const [typing, setTyping] = useState(false);
   const [input, setInput] = useState('');
   const [voiceOn, setVoiceOn] = useState(() => {
-    try { return canSpeak && localStorage.getItem(VOICE_KEY) !== 'off'; } catch { return canSpeak; }
+    try { return localStorage.getItem(VOICE_KEY) !== 'off'; } catch { return true; }
   });
   const [listening, setListening] = useState(null); // { stop } while the mic is open
   const [busy, setBusy] = useState(false);
@@ -82,6 +83,11 @@ export default function ChatBot({ mode = 'public', start = mode === 'staff' ? 'r
   const [schemes, setSchemes] = useState(null);
   const [trackId, setTrackId] = useState('');
   const [voices, setVoices] = useState(availableVoices);
+  // Server voice (Bhashini) availability arrives a moment after load.
+  const [caps, setCaps] = useState(speechStatus);
+  useEffect(() => onSpeechStatus(setCaps), []);
+  const canSpeak = canSpeakOnDevice || caps.tts;
+  const canListen = listenAvailable();
   const [voiceName, setVoiceName] = useState(currentVoiceName);
   const scrollRef = useRef(null);
   const inputRef = useRef(null);
@@ -95,6 +101,9 @@ export default function ChatBot({ mode = 'public', start = mode === 'staff' ? 'r
    */
   const say = useCallback((...bubbles) => {
     const list = bubbles.flat().filter(Boolean).map((b) => (typeof b === 'string' ? { text: b } : b));
+    const spoken = list.map((b) => b.text).join('. ');
+    // Generate the server voice while the typing dots run, so it plays as soon as the text appears.
+    if (voiceRef.current) prefetchSpeech(spoken, { lang });
     queue.current = queue.current.then(async () => {
       for (const b of list) {
         setTyping(true);
@@ -102,7 +111,7 @@ export default function ChatBot({ mode = 'public', start = mode === 'staff' ? 'r
         setTyping(false);
         setMessages((m) => [...m, msg('bot', b.text, b)]);
       }
-      if (voiceRef.current) speak(list.map((b) => b.text).join('. '), { lang });
+      if (voiceRef.current) speak(spoken, { lang });
     });
     return queue.current;
   }, [lang]);
@@ -152,7 +161,7 @@ export default function ChatBot({ mode = 'public', start = mode === 'staff' ? 'r
 
   // Voices load late on some phones.
   useEffect(() => {
-    if (!canSpeak) return undefined;
+    if (!canSpeakOnDevice) return undefined;
     const update = () => { setVoices(availableVoices()); setVoiceName(currentVoiceName()); };
     window.speechSynthesis.addEventListener?.('voiceschanged', update);
     return () => window.speechSynthesis.removeEventListener?.('voiceschanged', update);
@@ -450,6 +459,7 @@ export default function ChatBot({ mode = 'public', start = mode === 'staff' ? 'r
       else inputRef.current?.focus();
     } catch (err) {
       say({ text: t(err.message === 'not-allowed' ? 'bot.micBlocked' : 'bot.micError'), error: true });
+      setInput('');
     } finally {
       setListening(null);
     }
@@ -486,7 +496,8 @@ export default function ChatBot({ mode = 'public', start = mode === 'staff' ? 'r
   }
   const type = inSurveyQuestion ? inputType(pos) : 'text';
   const showInput = !resumable && (inSurveyQuestion || (mode === 'public' && phase !== 'survey'));
-  const voiceNote = canSpeak && voiceOn && lang === 'mr' && voiceLanguage() !== 'mr'
+  // Notes about the phone's own voices only matter when the server voice is not in use.
+  const voiceNote = !caps.tts && canSpeakOnDevice && voiceOn && lang === 'mr' && voiceLanguage() !== 'mr'
     ? (voiceLanguage() === 'hi' ? t('bot.voiceHindi') : t('bot.voiceMissing'))
     : null;
 
@@ -513,7 +524,7 @@ export default function ChatBot({ mode = 'public', start = mode === 'staff' ? 'r
       </div>
       {voiceNote && <p className="bg-amber-50 px-3 py-1 text-[11px] leading-snug text-amber-900">{voiceNote}</p>}
       {/* Several voices on this phone: let people pick the one that sounds right (a man's, for the मदतनीस). */}
-      {voiceOn && lang === 'mr' && voices.length > 1 && (
+      {!caps.tts && voiceOn && lang === 'mr' && voices.length > 1 && (
         <label className="flex items-center gap-2 border-b border-orange-100 bg-orange-50/60 px-3 py-1 text-xs text-stone-600">
           🎙️ {t('bot.voicePick')}
           <select value={voiceName ?? ''} onChange={(e) => pickVoice(e.target.value)} className="min-w-0 flex-1 rounded border border-stone-300 bg-white px-1 py-0.5 text-xs">

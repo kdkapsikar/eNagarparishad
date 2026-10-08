@@ -17,6 +17,7 @@ import householdRoutes from './routes/households.js';
 import importRoutes from './routes/imports.js';
 import messageRoutes from './routes/messages.js';
 import publicRoutes from './routes/public.js';
+import speechRoutes from './routes/speech.js';
 
 export function createApp() {
   const app = express();
@@ -52,7 +53,7 @@ export function createApp() {
       origin: config.corsOrigins,
       methods: ['GET', 'POST', 'PUT', 'DELETE'],
       allowedHeaders: ['Authorization', 'Content-Type'],
-      exposedHeaders: ['Content-Disposition'],
+      exposedHeaders: ['Content-Disposition', 'X-Speech-Cache'],
       maxAge: 600,
     }));
   }
@@ -65,6 +66,7 @@ export function createApp() {
   app.use('/api', loadSession);
   app.use('/api/public', publicRoutes);
   app.use('/api/auth', authRoutes);
+  app.use('/api/speech', speechRoutes); // public: the assistant talks to residents who are not signed in
   app.use('/api/dashboard', requireStaff, dashboardRoutes);
   app.use('/api/households', requireStaff, householdRoutes);
   app.use('/api/messages', requireStaff, messageRoutes);

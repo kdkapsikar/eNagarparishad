@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { canSpeak, speak, stopSpeaking } from '../bot/speech.js';
+import { canSpeak, onSpeakingChange, speak, speechStatus, stopSpeaking } from '../bot/speech.js';
 import { useT } from '../i18n/LanguageContext.jsx';
 
 /** Reads a block of text aloud - for residents who find reading hard. */
@@ -7,7 +7,9 @@ export default function ListenButton({ text }) {
   const { t, lang } = useT();
   const [on, setOn] = useState(false);
   useEffect(() => () => stopSpeaking(), []);
-  if (!canSpeak) return null;
+  // Back to "Listen" once the reading finishes.
+  useEffect(() => onSpeakingChange((speaking) => !speaking && setOn(false)), []);
+  if (!canSpeak && !speechStatus().tts) return null;
   return (
     <button
       type="button"

@@ -3,6 +3,7 @@ import { createApp } from './app.js';
 import { pool } from './db/pool.js';
 import { purgeExpiredSessions } from './services/sessions.js';
 import { startReminderScheduler } from './services/messaging.js';
+import { purgeOldSpeech } from './services/speech.js';
 
 const app = createApp();
 const server = app.listen(config.port, () => {
@@ -10,7 +11,10 @@ const server = app.listen(config.port, () => {
 });
 
 // Hourly housekeeping; unref() so neither timer keeps the process alive on shutdown.
-setInterval(() => purgeExpiredSessions().catch((e) => console.error('Session purge failed:', e.message)), 3600_000).unref();
+setInterval(() => {
+  purgeExpiredSessions().catch((e) => console.error('Session purge failed:', e.message));
+  purgeOldSpeech().catch((e) => console.error('Speech cache purge failed:', e.message));
+}, 3600_000).unref();
 startReminderScheduler();
 
 function shutdown(signal) {

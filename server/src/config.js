@@ -33,6 +33,20 @@ export const config = {
   // 'log'    = pretend to send and print to the console (development).
   // See services/messaging.js to add WhatsApp Cloud API / SMS.
   messageChannel: process.env.MESSAGE_CHANNEL || 'manual',
+  // Bhashini (Government of India language platform) for the assistant's voice and speech recognition.
+  // Both values come from "My Profile" on the Bhashini dashboard. Without them the web app uses each
+  // phone's own speech engine, as before. See services/speech.js.
+  bhashini: {
+    userId: process.env.BHASHINI_USER_ID || '',
+    apiKey: process.env.BHASHINI_API_KEY || '',
+    // "Initial Pipeline Models" (ASR, translation, transliteration, TTS); IIT Madras' ASR+TTS pipeline is
+    // 660fa5bec7fb5b0328229016. See https://dibd-bhashini.gitbook.io/bhashini-apis/pipeline-search-call
+    pipelineId: process.env.BHASHINI_PIPELINE_ID || '64392f96daac500b55c543cd',
+    configUrl: process.env.BHASHINI_CONFIG_URL || 'https://meity-auth.ulcacontrib.org/ulca/apis/v0/model/getModelsPipeline',
+    voice: process.env.BHASHINI_VOICE || 'male',
+  },
+  maxSpeechChars: 600,
+  maxAudioBytes: 3 * 1024 * 1024,
   maxImportBytes: 5 * 1024 * 1024,
   maxImportRows: 5000,
 };

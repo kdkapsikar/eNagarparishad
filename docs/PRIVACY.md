@@ -21,7 +21,11 @@ should confirm its obligations with a lawyer before going live.
   accounts and certificate status are admin-only. Passwords are bcrypt-hashed; sessions are opaque tokens
   stored only as hashes and are revoked when a user is deactivated.
 - **No full data in URLs**, no third-party analytics; the only external resources are Google Fonts and the
-  browser's own speech service (when the microphone is used).
+  speech services below.
+- **Speech:** with Bhashini configured, the text the assistant speaks (which can include a family member's
+  name) and the recordings residents make by tapping the mic are sent to Bhashini (Government of India,
+  MeitY) for processing. Recordings are not stored by this system; synthesised audio of the assistant's
+  lines is cached in the database and deleted after 30 days without use. Without Bhashini, the browser's own speech service is used instead.
 - **Paper-form scans are git-ignored.**
 
 ## What the office needs to do
