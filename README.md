@@ -69,11 +69,22 @@ What he can do from his menu (tap a chip, type, or say it - "लाईट कध
 | 📜 जन्म-मृत्यू दाखला | Link to apply, or asks the request number and mobile and tells you the status |
 | 📞 कार्यालयाचा संपर्क | Office address and a tap-to-call link |
 
+**Signed in (office staff and volunteers)** he appears on the staff pages too, with a staff menu:
+📝 new family survey, 🎂 today's birthdays and anniversaries (with a link to send the wishes), 🔍 find a
+family by name / mobile / voter ID, 📊 today's summary, plus notices and schemes.
+
+**What a signed-out visitor can get from him:** only public information (notices, schemes, office contact),
+their own certificate request's status (request number *and* the applicant's mobile are both needed), and
+registering their own family (write-only - nothing collected is ever shown back). The staff items are not
+offered without a session, and the server refuses the underlying calls without one anyway. Signing in or out
+starts a fresh conversation, so nothing a staff user saw stays on screen.
+
 Registration asks the paper-form questions one at a time, starting with **consent**. Follow-ups only
 appear when they apply (farm details only if the family has a farm, PAN / voter ID only for adults, gender
 is inferred from "पत्नी", "मुलगा"...). It shows a typing indicator and short acknowledgements ("बरं.",
 "हो, लिहून घेतलं."), offers **Skip** and **Back**, and ends with a summary you can correct before saving.
-An unfinished registration survives a reload (kept on the device).
+An unfinished registration survives a reload (kept on the device): a resident's for 20 minutes, so the
+next person on a shared phone cannot open it; a staff user's only for that account, erased on logout.
 
 - **Voice out:** each turn is read aloud (🔊 toggle, 🔈 replay) in a **male Marathi voice**. With Bhashini
   configured (below) the server generates it, so it is the same on every phone with nothing to install;

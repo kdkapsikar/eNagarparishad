@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext.jsx';
 import { useT } from '../i18n/LanguageContext.jsx';
 import ChatBot from './ChatBot.jsx';
 import Mascot from './Mascot.jsx';
@@ -10,20 +11,32 @@ const TEASER_KEY = 'enp_madatnees_teaser_closed';
 export const openMadatnees = (intent) => window.dispatchEvent(new CustomEvent('madatnees:open', { detail: { intent } }));
 
 /**
- * मदतनीस floating at the bottom-right of the public pages. A "राम राम!" bubble calls people over;
+ * मदतनीस floating at the bottom-right of every page: the residents' helper when signed out, the staff
+ * helper (new family, birthdays, family search, summary) when signed in. A "राम राम!" bubble calls people over;
  * tapping him opens the chat, which then sits on a bamboo pole he holds up with both hands
  * (the pole's top is 5.6 of 80 from the top of his box - POLE_TOP in Mascot.jsx; the window's bottom edge
- * sits 0.91 up, just behind the pole, so it reads as resting on it). Not shown on staff pages or on
- * /register (that page has the chat inline).
+ * sits 0.91 up, just behind the pole, so it reads as resting on it). Not shown where the chat is
+ * already on the page.
  */
 export default function BotWidget() {
   const { t } = useT();
   const { pathname } = useLocation();
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false); // keep the conversation after closing the panel
   const [teaser, setTeaser] = useState(false);
   const [command, setCommand] = useState(null);
-  const hidden = pathname.startsWith('/staff') || pathname === '/register' || pathname === '/login';
+  // Hidden where the chat is already on the page (/register, /staff/bot) and on the login page.
+  const hidden = ['/register', '/staff/bot', '/login'].includes(pathname);
+
+  // Signing in or out starts a fresh conversation: nothing a staff user saw stays on screen afterwards.
+  const identity = user ? `staff-${user.id}` : 'public';
+  const [shownFor, setShownFor] = useState(identity);
+  if (shownFor !== identity) {
+    setShownFor(identity);
+    setOpen(false);
+    setMounted(false);
+  }
 
   useEffect(() => {
     let closed = false;
@@ -73,7 +86,7 @@ export default function BotWidget() {
           aria-label={t('bot.name')}
           className={`fixed bottom-[calc(var(--bhau)*0.91+16px)] left-3 right-3 z-40 h-[min(620px,calc(100dvh-var(--bhau)-40px))] overflow-hidden rounded-t-2xl rounded-b-md border border-orange-200 bg-white shadow-2xl [--bhau:clamp(84px,9vw,112px)] sm:left-auto sm:right-5 sm:w-[400px] ${open ? 'bot-pop' : 'hidden'}`}
         >
-          <ChatBot mode="public" fill command={command} onClose={() => setOpen(false)} />
+          <ChatBot key={identity} mode={user ? 'staff' : 'public'} start="menu" fill command={command} onClose={() => setOpen(false)} />
         </div>
       )}
 

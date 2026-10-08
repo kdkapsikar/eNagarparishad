@@ -151,3 +151,21 @@ describe('splitting long text for the server voice', async () => {
     assert.ok(chunks.every((c) => c.length <= 450));
   });
 });
+
+describe('staff-only requests', async () => {
+  const { detectIntent } = await import('../src/bot/parse.js');
+  const staffAsks = ['आजचे वाढदिवस कोणाचे?', 'रामराव पाटील शोधा', 'आजचा सारांश सांगा', 'show dashboard summary'];
+
+  test('a signed-out visitor never gets them, whatever they type', () => {
+    for (const text of staffAsks) {
+      assert.ok(!['birthdays', 'search', 'summary'].includes(detectIntent(text)), text);
+    }
+  });
+
+  test('a signed-in staff user does', () => {
+    assert.equal(detectIntent(staffAsks[0], { staff: true }), 'birthdays');
+    assert.equal(detectIntent(staffAsks[1], { staff: true }), 'search');
+    assert.equal(detectIntent(staffAsks[2], { staff: true }), 'summary');
+    assert.equal(detectIntent('लाईट कधी येणार?', { staff: true }), 'notices');
+  });
+});

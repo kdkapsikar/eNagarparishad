@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { api, tokenStore } from '../api/client.js';
+import { clearStaffDrafts } from '../bot/drafts.js';
 
 const AuthContext = createContext(null);
 
@@ -24,6 +25,7 @@ export function AuthProvider({ children }) {
 
   const logout = useCallback(async () => {
     await api.logout().catch(() => {});
+    clearStaffDrafts(); // unfinished surveys hold residents' details
     setState({ loading: false, user: null });
   }, []);
 

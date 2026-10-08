@@ -16,6 +16,12 @@ should confirm its obligations with a lawyer before going live.
 - **PAN encrypted at rest** with AES-256-GCM. Screens show `XXXXXX234F`; only the admin's Excel export
   decrypts it. Keep `DATA_ENCRYPTION_KEY` secret and backed up.
 - **Caste and category are optional**; the bot says the person may skip them.
+- **The assistant shows collected data only to signed-in staff.** Signed out, it offers public information,
+  a certificate status lookup that needs both the request number and the applicant's mobile, and
+  write-only family registration. Staff requests (birthdays, family search, summary) use APIs that require a
+  staff session. Logging in or out restarts the conversation.
+- **Unfinished registrations on the device:** a resident's expires after 20 minutes (shared phones); a staff
+  user's is tied to that account and erased on logout.
 - **Self-registrations are unverified** until staff check them, and receive no broadcasts until then.
 - **Access control:** volunteers can collect and edit families; export, deletion, notices, schemes, user
   accounts and certificate status are admin-only. Passwords are bcrypt-hashed; sessions are opaque tokens

@@ -80,10 +80,17 @@ export function parseDate(input) {
  * What a resident typed or said at the main menu: 'register' | 'notices' | 'schemes' | 'certificate' |
  * 'contact' | 'greet' | null. Village speech mixes Marathi, Hindi and English ("लाईट कधी येणार?").
  */
-export function detectIntent(input) {
+export function detectIntent(input, { staff = false } = {}) {
   const s = clean(input);
   if (!s) return null;
   const has = (...words) => words.some((w) => s.includes(w));
+  // Staff-only requests read collected data; they are never offered to a signed-out visitor (and the
+  // server refuses the underlying calls without a staff session anyway).
+  if (staff) {
+    if (has('वाढदिवस', 'birthday', 'anniversary', 'शुभेच्छा')) return 'birthdays';
+    if (has('शोध', 'शोधा', 'search', 'find', 'कुठे')) return 'search';
+    if (has('सारांश', 'आकडे', 'डॅशबोर्ड', 'dashboard', 'summary', 'आज किती')) return 'summary';
+  }
   if (has('दाखला', 'दाखले', 'प्रमाणपत्र', 'सर्टिफिकेट', 'certificate', 'जन्म', 'मृत्यू')) return 'certificate';
   if (has('लाईट', 'लाइट', 'वीज', 'बिजली', 'पाणी', 'पानी', 'नळ', 'light', 'power', 'water', 'electric')) return 'notices';
   if (has('योजना', 'स्कीम', 'scheme', 'yojana', 'अनुदान', 'घरकुल', 'पेन्शन')) return 'schemes';

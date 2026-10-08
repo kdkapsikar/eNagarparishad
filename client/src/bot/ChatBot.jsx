@@ -2,10 +2,12 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api/client.js';
 import { offlineQueue } from '../api/offlineQueue.js';
+import { useAuth } from '../context/AuthContext.jsx';
 import { useSettings } from '../context/SettingsContext.jsx';
 import { useT } from '../i18n/LanguageContext.jsx';
 import { formatDate, formatDateTime } from '../lib/format.js';
 import { normalizeMobile, todayIso } from '../lib/validation.js';
+import { clearDraft as clearDraftFor, loadDraft as loadDraftFor, saveDraft as saveDraftFor } from './drafts.js';
 import Mascot from './Mascot.jsx';
 import { detectIntent, matchOption, parseYesNo, searchSchemes } from './parse.js';
 import {
@@ -18,23 +20,7 @@ import {
 } from './speech.js';
 import { EditPicker, Summary } from './SurveySummary.jsx';
 
-const DRAFT_KEY = (mode) => `enp_bot_draft_${mode}`;
 const VOICE_KEY = 'enp_bot_voice';
-
-function loadDraft(mode) {
-  try {
-    const draft = JSON.parse(localStorage.getItem(DRAFT_KEY(mode)) ?? 'null');
-    return draft?.data && draft?.pos ? draft : null;
-  } catch {
-    return null;
-  }
-}
-const saveDraft = (mode, draft) => {
-  try { localStorage.setItem(DRAFT_KEY(mode), JSON.stringify(draft)); } catch { /* ignore */ }
-};
-const clearDraft = (mode) => {
-  try { localStorage.removeItem(DRAFT_KEY(mode)); } catch { /* ignore */ }
-};
 
 // Unique even across hot reloads / remounts, which reset the counter.
 let messageId = 0;
@@ -42,13 +28,24 @@ const msg = (from, text, extra = {}) => ({ ...extra, id: `${Date.now().toString(
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const pick = (list) => list[Math.floor(Math.random() * list.length)];
 
-const MENU = [
+// What each kind of visitor can ask. Only the staff menu reads collected data, and only through APIs that
+// require a staff session - a signed-out visitor never gets these, whatever they type.
+const PUBLIC_MENU = [
   ['register', '📝', 'bot.menu.register'],
   ['notices', '💡', 'bot.menu.notices'],
   ['schemes', '🏛️', 'bot.menu.schemes'],
   ['certificate', '📜', 'bot.menu.certificate'],
   ['contact', '📞', 'bot.menu.contact'],
 ];
+const STAFF_MENU = [
+  ['register', '📝', 'bot.menu.newFamily'],
+  ['birthdays', '🎂', 'bot.menu.birthdays'],
+  ['search', '🔍', 'bot.menu.search'],
+  ['summary', '📊', 'bot.menu.summary'],
+  ['notices', '💡', 'bot.menu.notices'],
+  ['schemes', '🏛️', 'bot.menu.schemes'],
+];
+const STAFF_INTENTS = new Set(['birthdays', 'search', 'summary']);
 const NOTICE_ICON = { electricity: '⚡', water: '💧', general: '📢' };
 
 /**
@@ -57,7 +54,9 @@ const NOTICE_ICON = { electricity: '⚡', water: '💧', general: '📢' };
  * mode="public": a resident's helper. Starts at a menu (register the family, power / water notices,
  *   schemes, certificate status, office contact); `start="register"` jumps straight into registration.
  *   Registrations are saved unverified for staff to check.
- * mode="staff":  a volunteer surveys a family; goes straight into the survey, saved at once (queued offline).
+ * mode="staff":  a signed-in volunteer / office user. On the survey page (`start="register"`) it goes straight
+ *   into the family survey, saved at once (queued offline). In the floating widget it starts at the staff
+ *   menu: new family, today's birthdays, family search, today's summary, notices, schemes.
  *
  * `command` ({ intent, n }) lets the floating widget start a flow from outside, e.g. the home page button.
  * `onClose` adds a close button (widget). `fill` makes the chat take its parent's height.
@@ -65,7 +64,12 @@ const NOTICE_ICON = { electricity: '⚡', water: '💧', general: '📢' };
 export default function ChatBot({ mode = 'public', start = mode === 'staff' ? 'register' : 'menu', command, onClose, fill = false }) {
   const { t, lang } = useT();
   const settings = useSettings();
-  const [phase, setPhase] = useState('menu'); // menu | survey | schemes | certificate | track-id | track-phone
+  const { user } = useAuth();
+  const staff = mode === 'staff' && Boolean(user);
+  const loadDraft = (m) => loadDraftFor(m, user?.id);
+  const saveDraft = (m, d) => saveDraftFor(m, user?.id, d);
+  const clearDraft = (m) => clearDraftFor(m, user?.id);
+  const [phase, setPhase] = useState('menu'); // menu | survey | schemes | certificate | track-id | track-phone | family-search
   const [data, setData] = useState(emptyData);
   const [pos, setPos] = useState({ step: 'consent' });
   const [history, setHistory] = useState([]);
@@ -143,7 +147,7 @@ export default function ChatBot({ mode = 'public', start = mode === 'staff' ? 'r
     } else if (start === 'register') {
       startSurvey(greeting());
     } else {
-      say(t('bot.introMenu'));
+      say(staff ? t('bot.introStaffMenu', { name: user.name }) : t('bot.introMenu'));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -186,9 +190,11 @@ export default function ChatBot({ mode = 'public', start = mode === 'staff' ? 'r
     return list;
   };
 
-  const runIntent = async (intent, shown) => {
+  const runIntent = async (requested, shown) => {
     if (shown) userSays(shown);
     stopSpeaking();
+    // Defence in depth: staff requests are only ever handled for a signed-in staff user.
+    const intent = STAFF_INTENTS.has(requested) && !staff ? null : requested;
     try {
       if (intent === 'register') {
         if (resumable) { setResumable(null); clearDraft(mode); }
@@ -224,13 +230,64 @@ export default function ChatBot({ mode = 'public', start = mode === 'staff' ? 'r
         if (settings.office_phone) lines.push(`📞 ${settings.office_phone}`);
         await say({ text: lines.join('\n'), links: settings.office_phone ? [{ href: `tel:${settings.office_phone}`, label: t('bot.link.call') }] : [] });
         await backToMenu();
+      } else if (intent === 'birthdays') {
+        setPhase('menu');
+        const { occasions } = await api.dashboard();
+        if (!occasions.length) {
+          await say(t('bot.birthdaysNone'));
+        } else {
+          await say(
+            t('bot.birthdaysIntro', { n: occasions.length }),
+            occasions.slice(0, 10).map((o) => `${o.kind === 'birthday' ? '🎂' : '💐'} ${o.name}${o.area ? ` (${o.area})` : ''} - ${t(`dash.kind.${o.kind}`)}`).join('\n'),
+            { text: t('bot.birthdaysSend'), links: [{ to: '/staff/messages', label: t('bot.link.messages') }] },
+          );
+        }
+        await backToMenu();
+      } else if (intent === 'search') {
+        setPhase('family-search');
+        await say(t('bot.searchAsk'));
+      } else if (intent === 'summary') {
+        setPhase('menu');
+        const d = await api.dashboard();
+        await say({
+          text: t('bot.summaryText', {
+            families: d.totals.households, people: d.totals.members, unverified: d.totals.unverified,
+            messages: d.pendingMessages, certificates: d.openCertificates,
+          }),
+          links: [{ to: '/staff', label: t('bot.link.dashboard') }],
+        });
+        await backToMenu();
       } else if (intent === 'greet') {
-        await say(t('bot.greetBack'));
+        await say(staff ? t('bot.greetBackStaff', { name: user.name }) : t('bot.greetBack'));
       } else {
         await say(t('bot.notUnderstood'));
       }
     } catch (err) {
-      await say({ text: err.message, error: true });
+      await say({ text: err.status === 401 ? t('bot.sessionExpired') : err.message, error: true });
+      setPhase('menu');
+    }
+  };
+
+  /** Staff only: find families by name, mobile or voter ID (the server checks the session). */
+  const searchFamilies = async (text) => {
+    userSays(text);
+    try {
+      const { households, total } = await api.households({ q: text.trim() });
+      if (!total) {
+        await say(t('bot.searchNone'));
+        return;
+      }
+      await say(
+        t('bot.searchFound', { n: total }),
+        ...households.slice(0, 5).map((h) => ({
+          text: `👪 ${h.head_name}${h.area ? ` - ${h.area}` : ''} · ${t('families.members', { n: h.member_count })}`,
+          links: [{ to: `/staff/families/${h.id}`, label: t('bot.link.family') }],
+        })),
+        total > 5 && { text: t('bot.searchMore', { n: total - 5 }), links: [{ to: `/staff/families?q=${encodeURIComponent(text.trim())}`, label: t('bot.link.allResults') }] },
+      );
+      await say(t('bot.searchAgain'));
+    } catch (err) {
+      await say({ text: err.status === 401 ? t('bot.sessionExpired') : err.message, error: true });
       setPhase('menu');
     }
   };
@@ -305,7 +362,7 @@ export default function ChatBot({ mode = 'public', start = mode === 'staff' ? 'r
     if (!text) return;
     if (phase === 'menu') {
       setInput('');
-      const intent = detectIntent(text);
+      const intent = detectIntent(text, { staff });
       // "शेतीसाठी काही योजना आहे का?" - search right away instead of asking which scheme.
       if (intent === 'schemes') {
         setPhase('schemes');
@@ -314,6 +371,13 @@ export default function ChatBot({ mode = 'public', start = mode === 'staff' ? 'r
       } else {
         runIntent(intent, text);
       }
+      return;
+    }
+    if (phase === 'family-search') {
+      setInput('');
+      const intent = detectIntent(text, { staff });
+      if (intent && intent !== 'search') runIntent(intent, text);
+      else searchFamilies(text);
       return;
     }
     if (phase === 'schemes') {
@@ -346,7 +410,7 @@ export default function ChatBot({ mode = 'public', start = mode === 'staff' ? 'r
       setPos({ step: 'declined' });
       clearDraft(mode);
       say(t('bot.declined'));
-      if (mode === 'public') backToMenu();
+      if (start === 'menu') backToMenu();
       return;
     }
     if (returnToSummary) {
@@ -391,7 +455,7 @@ export default function ChatBot({ mode = 'public', start = mode === 'staff' ? 'r
     } else {
       clearDraft(mode);
       if (start === 'register') startSurvey(greeting());
-      else say(t('bot.introMenu'));
+      else say(staff ? t('bot.introStaffMenu', { name: user.name }) : t('bot.introMenu'));
     }
   };
 
@@ -412,7 +476,7 @@ export default function ChatBot({ mode = 'public', start = mode === 'staff' ? 'r
       setPos({ step: 'done' });
       userSays(t('bot.confirmSave'));
       await say(mode === 'staff' ? t('bot.savedStaff') : t('bot.savedPublic'));
-      if (mode === 'public') backToMenu();
+      if (start === 'menu') backToMenu();
     } catch (err) {
       if (err.offline && mode === 'staff') {
         offlineQueue.add({ ...payload, source: 'bot' });
@@ -479,8 +543,8 @@ export default function ChatBot({ mode = 'public', start = mode === 'staff' ? 'r
     chips = [{ label: t('bot.resumeYes'), run: () => resume(true) }, { label: t('bot.resumeNo'), run: () => resume(false) }];
   } else if (inSurveyQuestion) {
     chips = quickReplies(pos, data, mode).map((r) => ({ label: r.label, run: () => answer(r.answer, r.label) }));
-  } else if (phase === 'menu' && mode === 'public' && pos.step !== 'summary') {
-    chips = MENU.map(([intent, icon, key]) => ({ label: `${icon} ${t(key)}`, run: () => runIntent(intent, t(key)) }));
+  } else if (phase === 'menu' && start === 'menu' && pos.step !== 'summary') {
+    chips = (staff ? STAFF_MENU : PUBLIC_MENU).map(([intent, icon, key]) => ({ label: `${icon} ${t(key)}`, run: () => runIntent(intent, t(key)) }));
   } else if (phase === 'schemes') {
     const categories = [...new Set((schemes ?? []).map((s) => s.category))];
     chips = [
@@ -488,6 +552,8 @@ export default function ChatBot({ mode = 'public', start = mode === 'staff' ? 'r
       ...categories.map((c) => ({ label: c, run: () => showSchemes(c) })),
       { label: `↩ ${t('bot.menu.back')}`, run: () => { userSays(t('bot.menu.back')); backToMenu(); } },
     ];
+  } else if (phase === 'family-search') {
+    chips = [{ label: `↩ ${t('bot.menu.back')}`, run: () => { userSays(t('bot.menu.back')); backToMenu(); } }];
   } else if (phase === 'certificate') {
     chips = [
       { label: `🔍 ${t('bot.certTrack')}`, run: () => { userSays(t('bot.certTrack')); setPhase('track-id'); say(t('bot.trackAskId')); } },
@@ -495,7 +561,7 @@ export default function ChatBot({ mode = 'public', start = mode === 'staff' ? 'r
     ];
   }
   const type = inSurveyQuestion ? inputType(pos) : 'text';
-  const showInput = !resumable && (inSurveyQuestion || (mode === 'public' && phase !== 'survey'));
+  const showInput = !resumable && (inSurveyQuestion || (start === 'menu' && phase !== 'survey'));
   // Notes about the phone's own voices only matter when the server voice is not in use.
   const voiceNote = !caps.tts && canSpeakOnDevice && voiceOn && lang === 'mr' && voiceLanguage() !== 'mr'
     ? (voiceLanguage() === 'hi' ? t('bot.voiceHindi') : t('bot.voiceMissing'))
@@ -507,7 +573,7 @@ export default function ChatBot({ mode = 'public', start = mode === 'staff' ? 'r
         <Mascot size={44} pose="rest" listening={Boolean(listening)} />
         <div className="min-w-0 flex-1 leading-tight">
           <p className="font-bold text-stone-900">{t('bot.name')}</p>
-          <p className="truncate text-xs text-stone-600">{mode === 'staff' ? t('bot.subtitleStaff') : t('bot.subtitle')}</p>
+          <p className="truncate text-xs text-stone-600">{staff ? (start === 'register' ? t('bot.subtitleStaff') : t('bot.subtitleStaffMenu', { name: user.name })) : t('bot.subtitle')}</p>
         </div>
         {canSpeak && (
           <button type="button" onClick={toggleVoice} className="btn btn-secondary px-2.5" aria-pressed={voiceOn} title={t(voiceOn ? 'bot.voiceOff' : 'bot.voiceOn')}>
@@ -515,7 +581,7 @@ export default function ChatBot({ mode = 'public', start = mode === 'staff' ? 'r
             <span className="sr-only">{t(voiceOn ? 'bot.voiceOff' : 'bot.voiceOn')}</span>
           </button>
         )}
-        <button type="button" onClick={() => (mode === 'staff' || start === 'register' ? startSurvey(greeting()) : runIntent('register', t('bot.menu.register')))} className="btn btn-secondary hidden px-2.5 text-xs sm:inline-flex">
+        <button type="button" onClick={() => (start === 'register' ? startSurvey(greeting()) : runIntent('register', t('bot.menu.register')))} className="btn btn-secondary hidden px-2.5 text-xs sm:inline-flex">
           {t('bot.restart')}
         </button>
         {onClose && (
@@ -630,7 +696,7 @@ export default function ChatBot({ mode = 'public', start = mode === 'staff' ? 'r
             <button type="button" className="btn btn-secondary py-3" onClick={() => setEditing(true)}>{t('bot.edit')}</button>
           </div>
         )}
-        {mode === 'staff' && (pos.step === 'done' || pos.step === 'declined') && (
+        {mode === 'staff' && start === 'register' && (pos.step === 'done' || pos.step === 'declined') && (
           <button type="button" className="btn btn-primary w-full py-3 text-base" onClick={() => startSurvey(t('bot.letsStart'))}>
             {t('bot.nextFamily')}
           </button>
