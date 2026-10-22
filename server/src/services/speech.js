@@ -14,7 +14,8 @@ import { query } from '../db/pool.js';
 import { HttpError } from '../lib/httpError.js';
 
 const PIPELINE_TTL_MS = 6 * 60 * 60 * 1000;
-const TIMEOUT_MS = 20_000;
+// IIT Madras answers a sentence in about a second; a stuck service should hand over to the next quickly.
+const TIMEOUT_MS = 15_000;
 
 export const speechEnabled = () => Boolean(config.bhashini.userId && config.bhashini.apiKey);
 
@@ -48,14 +49,17 @@ async function postJson(url, headers, body) {
 
 // task|lang -> { serviceId, callbackUrl, authName, authValue, voices, expires }
 const pipelines = new Map();
+// task|lang|pipelineId -> time until which that pipeline is skipped after it failed (outage, timeout).
+const resting = new Map();
+const REST_MS = 10 * 60 * 1000;
 
-/** Step 1: find the service for a task ('tts' | 'asr') and language, plus where/how to call it. */
-async function pipelineFor(task, lang) {
-  const key = `${task}|${lang}`;
+/** Step 1: find the service for a task ('tts' | 'asr') and language in one pipeline, plus where/how to call it. */
+async function pipelineFor(task, lang, pipelineId) {
+  const key = `${task}|${lang}|${pipelineId}`;
   const cached = pipelines.get(key);
   if (cached && cached.expires > Date.now()) return cached;
 
-  const { userId, apiKey, pipelineId, configUrl } = config.bhashini;
+  const { userId, apiKey, configUrl } = config.bhashini;
   const data = await postJson(
     configUrl,
     { userID: userId, ulcaApiKey: apiKey },
@@ -71,6 +75,7 @@ async function pipelineFor(task, lang) {
     throw new BhashiniError(`Bhashini has no ${task} service for "${lang}" in pipeline ${pipelineId}`, 404);
   }
   const entry = {
+    pipelineId,
     serviceId: service.serviceId,
     voices: service.supportedVoices ?? [],
     callbackUrl: endpoint.callbackUrl,
@@ -82,21 +87,44 @@ async function pipelineFor(task, lang) {
   return entry;
 }
 
-/** Step 2, retrying once with a fresh config if the inference key was rotated. */
-async function compute(task, lang, buildBody) {
+/** Step 2 in one pipeline, retrying once with a fresh config if the inference key was rotated. */
+async function computeIn(pipelineId, task, lang, buildBody) {
   for (let attempt = 0; attempt < 2; attempt += 1) {
-    const p = await pipelineFor(task, lang);
+    const p = await pipelineFor(task, lang, pipelineId);
     try {
       return await postJson(p.callbackUrl, { [p.authName]: p.authValue }, buildBody(p));
     } catch (err) {
       if (attempt === 0 && (err.status === 401 || err.status === 403)) {
-        pipelines.delete(`${task}|${lang}`);
+        pipelines.delete(`${task}|${lang}|${pipelineId}`);
         continue;
       }
       throw err;
     }
   }
   throw new BhashiniError('Bhashini rejected the request', 401);
+}
+
+/**
+ * Step 2 with fallback: Bhashini's model services go down independently (in October 2026 the ai4bharat
+ * Marathi voice timed out while IIT Madras' worked), so the configured pipelines are tried in order and
+ * one that fails is skipped for 10 minutes. Bad keys (401/403) are not a reason to try another pipeline.
+ */
+async function compute(task, lang, buildBody) {
+  const ids = config.bhashini.pipelineIds;
+  const now = Date.now();
+  const usable = ids.filter((id) => !(resting.get(`${task}|${lang}|${id}`) > now));
+  let lastError;
+  for (const id of usable.length ? usable : ids) {
+    try {
+      return await computeIn(id, task, lang, buildBody);
+    } catch (err) {
+      lastError = err;
+      if (err.status === 401 || err.status === 403) throw err;
+      console.warn(`Bhashini ${task} via pipeline ${id} failed (${err.message}); trying the next one`);
+      resting.set(`${task}|${lang}|${id}`, Date.now() + REST_MS);
+    }
+  }
+  throw lastError ?? new BhashiniError('No Bhashini pipeline configured', 0);
 }
 
 // Emoji and markup are not read out; "(🎤)" leaves empty brackets, which are dropped too.
@@ -107,7 +135,11 @@ export const speakableText = (text) => String(text ?? '')
   .replace(/\s+/g, ' ')
   .trim();
 
-const cacheKey = (lang, voice, text) => createHash('sha256').update(`bhashini|${lang}|${voice}|${text}`).digest('hex');
+// The key covers which Bhashini (address + pipelines) made the audio, so a local stand-in's tones or an
+// old voice setup are never served as the current voice.
+const cacheKey = (lang, voice, text) => createHash('sha256')
+  .update(`bhashini|${config.bhashini.configUrl}|${config.bhashini.pipelineIds.join(',')}|${lang}|${voice}|${text}`)
+  .digest('hex');
 
 /** Text -> { audio: Buffer, mime } in the configured voice. Served from tts_cache when seen before. */
 export async function synthesize(rawText, lang = 'mr') {
@@ -181,4 +213,7 @@ export async function purgeOldSpeech() {
 }
 
 /** For tests: forget cached pipeline configs. */
-export const resetPipelines = () => pipelines.clear();
+export const resetPipelines = () => {
+  pipelines.clear();
+  resting.clear();
+};

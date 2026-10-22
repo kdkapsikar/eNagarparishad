@@ -39,9 +39,11 @@ export const config = {
   bhashini: {
     userId: process.env.BHASHINI_USER_ID || '',
     apiKey: process.env.BHASHINI_API_KEY || '',
-    // "Initial Pipeline Models" (ASR, translation, transliteration, TTS); IIT Madras' ASR+TTS pipeline is
-    // 660fa5bec7fb5b0328229016. See https://dibd-bhashini.gitbook.io/bhashini-apis/pipeline-search-call
-    pipelineId: process.env.BHASHINI_PIPELINE_ID || '64392f96daac500b55c543cd',
+    // Pipelines tried in order (comma-separated). IIT Madras (ASR + TTS, male Marathi voice) first, then the
+    // "Initial Pipeline Models" (ai4bharat; ASR, translation, transliteration, TTS) as the fallback.
+    // See https://dibd-bhashini.gitbook.io/bhashini-apis/pipeline-search-call
+    pipelineIds: (process.env.BHASHINI_PIPELINE_IDS || process.env.BHASHINI_PIPELINE_ID || '660fa5bec7fb5b0328229016,64392f96daac500b55c543cd')
+      .split(',').map((s) => s.trim()).filter(Boolean),
     configUrl: process.env.BHASHINI_CONFIG_URL || 'https://meity-auth.ulcacontrib.org/ulca/apis/v0/model/getModelsPipeline',
     voice: process.env.BHASHINI_VOICE || 'male',
   },

@@ -104,10 +104,17 @@ next person on a shared phone cannot open it; a staff user's only for that accou
 [Bhashini](https://bhashini.gov.in), the Government of India's language platform, gives the assistant one
 consistent male Marathi voice and speech recognition on every phone. Once the API key is approved:
 
-1. Copy **User ID** and **API key** from *My Profile* on the Bhashini dashboard into `server/.env` (and into
-   Render's environment for production) as `BHASHINI_USER_ID` and `BHASHINI_API_KEY`.
+1. On the Bhashini dashboard (*API Keys → Your API Keys*, app **enagarparishad**) copy the **User ID** (the
+   small grey code under the app name) and the **Udyat Key** into `server/.env` (and into Render's
+   environment for production) as `BHASHINI_USER_ID` and `BHASHINI_API_KEY`. The "Inference" key shown
+   there is not needed - the server fetches it.
 2. `npm run bhashini:check -w server` - speaks a test sentence and saves it, so you can listen to it.
 3. Restart the API. The web app switches to the server voice by itself (`GET /api/speech/status`).
+
+Voice services: the **IIT Madras** pipeline (male Marathi voice, about 1 s per sentence) is used first and
+**ai4bharat** is the automatic fallback - Bhashini's model services go down independently (in October 2026
+ai4bharat's Marathi voice timed out while IIT Madras' worked), so a failing one is skipped for 10 minutes.
+Change the order with `BHASHINI_PIPELINE_IDS`.
 
 How it works ([server/src/services/speech.js](server/src/services/speech.js)): the pipeline config call
 finds the Marathi TTS / ASR services, then each sentence is synthesised once and stored in `tts_cache`, so
@@ -250,8 +257,8 @@ docs/    FORMS.md (paper form → fields), PRIVACY.md
 
 - The Marathi text (UI and bot questions) was written by an AI assistant - have a native speaker review
   [client/src/i18n/strings.js](client/src/i18n/strings.js) and the starter schemes before launch.
-- The Bhashini integration is tested against a stand-in that follows Bhashini's documented API; run
-  `npm run bhashini:check` once the real keys arrive.
+- Bhashini was verified live on 22 Oct 2026 (male Marathi voice, and recognition of spoken Marathi). Speech
+  recognition is tuned for clear speech; test with residents' real accents before the pilot.
 - Messages are sent by hand from WhatsApp (see above); automatic WhatsApp / SMS needs the approvals noted.
 - No OCR of paper-form photos yet - offline data comes in through the Excel template.
 - Certificate requests are tracked here but issued through CRS (no integration yet).

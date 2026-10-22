@@ -14,7 +14,7 @@ process.env.NODE_ENV = 'test';
 process.env.DATABASE_URL = process.env.TEST_DATABASE_URL;
 
 // ---- fake Bhashini ---------------------------------------------------------------------------------
-const fake = { configCalls: 0, computeCalls: [], inferenceKey: 'inference-key-1', rejectNextCompute: false };
+const fake = { configCalls: 0, computeCalls: [], inferenceKey: 'inference-key-1', rejectNextCompute: false, downPipeline: null };
 const fakeApp = express();
 fakeApp.use(express.json({ limit: '10mb' }));
 fakeApp.post('/config', (req, res) => {
@@ -22,12 +22,13 @@ fakeApp.post('/config', (req, res) => {
   if (req.get('userID') !== 'test-user' || req.get('ulcaApiKey') !== 'test-key') return res.status(401).json({ message: 'bad key' });
   const task = req.body.pipelineTasks[0].taskType;
   const lang = req.body.pipelineTasks[0].config.language.sourceLanguage;
+  const pipe = req.body.pipelineRequestConfig.pipelineId;
   res.json({
     pipelineResponseConfig: [{
       taskType: task,
       config: [
         { serviceId: `${task}-hi-service`, language: { sourceLanguage: 'hi' }, supportedVoices: ['male', 'female'] },
-        { serviceId: `${task}-${lang}-service`, language: { sourceLanguage: lang }, supportedVoices: ['male', 'female'] },
+        { serviceId: `${pipe}/${task}-${lang}-service`, language: { sourceLanguage: lang }, supportedVoices: ['male', 'female'] },
       ],
     }],
     pipelineInferenceAPIEndPoint: {
@@ -43,6 +44,7 @@ fakeApp.post('/compute', (req, res) => {
     return res.status(401).json({ detail: 'expired' });
   }
   const task = req.body.pipelineTasks[0];
+  if (fake.downPipeline && task.config.serviceId.startsWith(`${fake.downPipeline}/`)) return res.status(504).send('<html>504 Gateway Time-out</html>');
   if (task.taskType === 'tts') {
     const text = req.body.inputData.input[0].source;
     return res.json({
@@ -85,7 +87,8 @@ after(async () => {
 
 beforeEach(async () => {
   Object.assign(config.bhashini, { userId: 'test-user', apiKey: 'test-key', voice: 'male' });
-  Object.assign(fake, { configCalls: 0, computeCalls: [], inferenceKey: 'inference-key-1', rejectNextCompute: false });
+  Object.assign(fake, { configCalls: 0, computeCalls: [], inferenceKey: 'inference-key-1', rejectNextCompute: false, downPipeline: null });
+  config.bhashini.pipelineIds = ['iitm', 'ai4b'];
   resetPipelines();
   await query('TRUNCATE tts_cache');
 });
@@ -112,7 +115,7 @@ describe('speech via Bhashini', () => {
     assert.equal(Buffer.from(await res.arrayBuffer()).toString(), 'RIFF:male:राम राम मंडळी! माइकचे चिन्ह दाबून बोला.');
     const call = fake.computeCalls[0];
     assert.equal(call.auth, 'inference-key-1');
-    assert.equal(call.body.pipelineTasks[0].config.serviceId, 'tts-mr-service'); // the Marathi service, not the first listed
+    assert.equal(call.body.pipelineTasks[0].config.serviceId, 'iitm/tts-mr-service'); // first pipeline, Marathi service (not the first listed)
     assert.equal(call.body.pipelineTasks[0].config.language.sourceLanguage, 'mr');
   });
 
@@ -154,7 +157,7 @@ describe('speech via Bhashini', () => {
     assert.equal(res.status, 200);
     assert.deepEqual(await res.json(), { text: 'गणपत शिंदे (3200)' });
     const cfg = fake.computeCalls[0].body.pipelineTasks[0].config;
-    assert.deepEqual([cfg.serviceId, cfg.audioFormat, cfg.samplingRate], ['asr-mr-service', 'wav', 16000]);
+    assert.deepEqual([cfg.serviceId, cfg.audioFormat, cfg.samplingRate], ['iitm/asr-mr-service', 'wav', 16000]);
   });
 
   test('a recording that is too large is refused', async () => {
@@ -171,4 +174,21 @@ test('audio unused for 30 days is purged; recently used audio stays', async () =
   await purgeOldSpeech();
   const { rows } = await query('SELECT text FROM tts_cache');
   assert.deepEqual(rows.map((r) => r.text), ['नवीन वाक्य']);
+});
+
+test('when one Bhashini service is down the next pipeline answers, and the broken one is rested', async () => {
+  fake.downPipeline = 'iitm';
+  const first = await tts('पहिली ओळ');
+  assert.equal(first.status, 200);
+  assert.deepEqual(fake.computeCalls.map((c) => c.body.pipelineTasks[0].config.serviceId), ['iitm/tts-mr-service', 'ai4b/tts-mr-service']);
+  await tts('दुसरी ओळ');
+  assert.equal(fake.computeCalls.at(-1).body.pipelineTasks[0].config.serviceId, 'ai4b/tts-mr-service');
+  assert.equal(fake.computeCalls.length, 3, 'the broken pipeline is not tried again straight away');
+});
+
+test('wrong keys do not fall through to another pipeline', async () => {
+  config.bhashini.apiKey = 'wrong';
+  await tts('राम राम');
+  assert.equal(fake.computeCalls.length, 0);
+  assert.equal(fake.configCalls, 1);
 });
