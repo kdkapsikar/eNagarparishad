@@ -46,6 +46,11 @@ export const config = {
       .split(',').map((s) => s.trim()).filter(Boolean),
     configUrl: process.env.BHASHINI_CONFIG_URL || 'https://meity-auth.ulcacontrib.org/ulca/apis/v0/model/getModelsPipeline',
     voice: process.env.BHASHINI_VOICE || 'male',
+    // The assistant's voice can be switched off (BHASHINI_TTS=off) while speech recognition stays on.
+    tts: process.env.BHASHINI_TTS !== 'off',
+    // A specific Marathi voice service, chosen by ear (see docs/bhashini/voice-samples): e.g.
+    // bhashini/bodhan/indic-tts (Bodhan AI) or Bhashini/IISC/TTS (IISc Syspin). Empty = the pipeline's default.
+    ttsServiceId: process.env.BHASHINI_TTS_SERVICE || '',
   },
   maxSpeechChars: 600,
   maxAudioBytes: 3 * 1024 * 1024,

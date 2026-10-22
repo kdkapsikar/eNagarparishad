@@ -89,6 +89,7 @@ beforeEach(async () => {
   Object.assign(config.bhashini, { userId: 'test-user', apiKey: 'test-key', voice: 'male' });
   Object.assign(fake, { configCalls: 0, computeCalls: [], inferenceKey: 'inference-key-1', rejectNextCompute: false, downPipeline: null });
   config.bhashini.pipelineIds = ['iitm', 'ai4b'];
+  Object.assign(config.bhashini, { tts: true, ttsServiceId: '' });
   resetPipelines();
   await query('TRUNCATE tts_cache');
 });
@@ -191,4 +192,36 @@ test('wrong keys do not fall through to another pipeline', async () => {
   await tts('राम राम');
   assert.equal(fake.computeCalls.length, 0);
   assert.equal(fake.configCalls, 1);
+});
+
+test('the voice can be switched off while speech recognition stays on', async () => {
+  config.bhashini.tts = false;
+  const status = await (await fetch(`${base}/api/speech/status`)).json();
+  assert.deepEqual(status, { tts: false, asr: true, provider: 'bhashini' });
+  assert.equal((await tts('राम राम')).status, 503);
+  const res = await fetch(`${base}/api/speech/asr`, { method: 'POST', headers: { 'Content-Type': 'audio/wav' }, body: Buffer.alloc(320, 1) });
+  assert.equal(res.status, 200);
+});
+
+test('a voice chosen by ear overrides the pipeline default', async () => {
+  config.bhashini.ttsServiceId = 'bhashini/bodhan/indic-tts';
+  await tts('राम राम मंडळी');
+  const cfg = fake.computeCalls[0].body.pipelineTasks[0].config;
+  assert.deepEqual([cfg.serviceId, cfg.gender], ['bhashini/bodhan/indic-tts', 'male']);
+});
+
+test('32-bit float WAV is converted to 16-bit PCM; other audio is left alone', async () => {
+  const { toPcm16Wav } = await import('../src/services/speech.js');
+  const samples = [0, 0.5, -1, 1.5];
+  const f = Buffer.alloc(44 + samples.length * 4);
+  f.write('RIFF', 0); f.writeUInt32LE(36 + samples.length * 4, 4); f.write('WAVE', 8); f.write('fmt ', 12);
+  f.writeUInt32LE(16, 16); f.writeUInt16LE(3, 20); f.writeUInt16LE(1, 22); f.writeUInt32LE(22050, 24);
+  f.writeUInt32LE(22050 * 4, 28); f.writeUInt16LE(4, 32); f.writeUInt16LE(32, 34); f.write('data', 36); f.writeUInt32LE(samples.length * 4, 40);
+  samples.forEach((v, i) => f.writeFloatLE(v, 44 + i * 4));
+  const out = toPcm16Wav(f);
+  assert.equal(out.readUInt16LE(20), 1);
+  assert.equal(out.readUInt16LE(34), 16);
+  assert.deepEqual([0, 1, 2, 3].map((i) => out.readInt16LE(44 + i * 2)), [0, 16384, -32767, 32767]);
+  const pcm = Buffer.from('RIFF....WAVEfmt ');
+  assert.equal(toPcm16Wav(pcm), pcm);
 });

@@ -1,7 +1,7 @@
 import express, { Router } from 'express';
 import { config } from '../config.js';
 import { speechLimiter } from '../middleware/rateLimit.js';
-import { recognize, speechEnabled, synthesize } from '../services/speech.js';
+import { asrEnabled, recognize, synthesize, ttsEnabled } from '../services/speech.js';
 
 const router = Router();
 const LANGS = new Set(['mr', 'hi', 'en']);
@@ -9,8 +9,9 @@ const langOf = (v) => (LANGS.has(v) ? v : 'mr');
 
 /** What the web app can use: server voice/recognition when Bhashini is configured, else the phone's own. */
 router.get('/status', (_req, res) => {
-  const on = speechEnabled();
-  res.json({ tts: on, asr: on, provider: on ? 'bhashini' : null });
+  const tts = ttsEnabled();
+  const asr = asrEnabled();
+  res.json({ tts, asr, provider: tts || asr ? 'bhashini' : null });
 });
 
 /** POST { text, lang } -> audio (wav). Cached by text, and the browser may cache it too. */
